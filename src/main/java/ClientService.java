@@ -13,18 +13,14 @@ import java.util.Vector;
 public class ClientService
 {
     SocketChannel socketChannel;
+    ByteBuffer readBuffer = ByteBuffer.allocate((int) Math.pow(2,20));
+    ByteBuffer writeBuffer = ByteBuffer.allocate((int) Math.pow(2,20));
     boolean loggedIn = false;
-
-    class Client
-    {
-        String userId;
-        List<Integer> rooms = new Vector<>();
-        int cur_room;
-    }
+    String userId = "not set";
 
 
 
-    void processCommand(String command)
+    void processInput(String command)
     {
         if(command.charAt(0) == '\\') // if it is command
         {
@@ -35,10 +31,10 @@ public class ClientService
                     System.out.println("already logged in");
                     return;
                 }
-                Client client = new Client();
-                client.userId = command.substring(7);
-                loggedIn = true;
-                startClientService(0,client);
+                String name = command.substring(7);
+                userId = name;
+                send(0,name);
+
             }
             else if(command.startsWith("logout", 1))
             {
@@ -98,10 +94,22 @@ public class ClientService
             }
 
         }
-
     }
 
-    void startClientService(int op,Client client)
+    void processOutput(int success,int op, String data)
+    {
+        if(op == 0)
+        {
+            if(success == -1)
+            {
+                userId="not set";
+            }
+            System.out.println(data);
+        }
+    }
+
+
+    void startClientService()
     {
         Thread thread = new Thread(() ->
         {
@@ -111,8 +119,7 @@ public class ClientService
                 socketChannel.configureBlocking(true);
                 socketChannel.connect(new InetSocketAddress("localhost",5001));
                 System.out.println("[연결 완료: " + socketChannel.getRemoteAddress() + "]");
-                System.out.println("채팅을 하고싶으면 \\createroom으로 방을 만들고해주세요");
-                send(op,client.userId);
+                System.out.print("로그인 해주세요 : ");
             }
             catch(Exception e)
             {
@@ -139,15 +146,19 @@ public class ClientService
         {
             try
             {
-                ByteBuffer byteBuffer = ByteBuffer.allocate(10000);
                 System.out.println("입력을 기다리는중...");
-                int readByteCount = socketChannel.read(byteBuffer);
+                int readByteCount = socketChannel.read(readBuffer);
+                System.out.println(readByteCount);
                 if(readByteCount == -1) throw new IOException();
-                byteBuffer.flip();
+                readBuffer.flip();
+                int success = readBuffer.get(0);
+                int op = readBuffer.get(1);
+                readBuffer.position(2);
                 Charset charset = Charset.forName("UTF-8");
-                String data = charset.decode(byteBuffer).toString();
+                String data = charset.decode(readBuffer).toString();
+                processOutput(success,op,data);
+                readBuffer.clear();
                 System.out.println("[답장받음]");
-                System.out.println(data);
             }
             catch(Exception e)
             {
@@ -163,11 +174,11 @@ public class ClientService
         {
             try
             {
-                ByteBuffer byteBuffer = ByteBuffer.allocate((int) Math.pow(2, 20));
-                byteBuffer.put((byte)op);
-                byteBuffer.put(userId.getBytes(StandardCharsets.UTF_8));
-                ByteBuffer toSend = byteBuffer.flip();
+                writeBuffer.put((byte)op);
+                writeBuffer.put(userId.getBytes(StandardCharsets.UTF_8));
+                ByteBuffer toSend = writeBuffer.flip();
                 socketChannel.write(toSend);
+                writeBuffer.clear();
                 System.out.println("[보내기 완료]");
             }
             catch(Exception e)
@@ -186,11 +197,11 @@ public class ClientService
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
         try
         {
-            System.out.print("로그인 해주세요 : ");
+            client.startClientService();
             String input;
             while((input = br.readLine()) != null)
             {
-                client.processCommand(input);
+                client.processInput(input);
             }
         }
         catch(IOException e){}
