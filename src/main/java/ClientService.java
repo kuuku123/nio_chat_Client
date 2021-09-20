@@ -13,7 +13,7 @@ import java.util.Vector;
 public class ClientService
 {
     SocketChannel socketChannel;
-    List<Client> clients = new Vector<>();
+    boolean loggedIn = false;
 
     class Client
     {
@@ -30,9 +30,14 @@ public class ClientService
         {
             if(command.startsWith("login", 1))
             {
+                if (loggedIn == true)
+                {
+                    System.out.println("already logged in");
+                    return;
+                }
                 Client client = new Client();
                 client.userId = command.substring(7);
-                clients.add(client);
+                loggedIn = true;
                 startClientService(0,client);
             }
             else if(command.startsWith("logout", 1))
@@ -106,7 +111,6 @@ public class ClientService
                 socketChannel.configureBlocking(true);
                 socketChannel.connect(new InetSocketAddress("localhost",5001));
                 System.out.println("[연결 완료: " + socketChannel.getRemoteAddress() + "]");
-                System.out.println("이제 입력가능합니다.");
                 System.out.println("채팅을 하고싶으면 \\createroom으로 방을 만들고해주세요");
                 send(op,client.userId);
             }
@@ -136,13 +140,13 @@ public class ClientService
             try
             {
                 ByteBuffer byteBuffer = ByteBuffer.allocate(10000);
+                System.out.println("입력을 기다리는중...");
                 int readByteCount = socketChannel.read(byteBuffer);
                 if(readByteCount == -1) throw new IOException();
                 byteBuffer.flip();
-                System.out.println(byteBuffer);
                 Charset charset = Charset.forName("UTF-8");
                 String data = charset.decode(byteBuffer).toString();
-                System.out.println("답장받음");
+                System.out.println("[답장받음]");
                 System.out.println(data);
             }
             catch(Exception e)
@@ -187,7 +191,6 @@ public class ClientService
             while((input = br.readLine()) != null)
             {
                 client.processCommand(input);
-                System.out.print("입력해주세요 : ");
             }
         }
         catch(IOException e){}
