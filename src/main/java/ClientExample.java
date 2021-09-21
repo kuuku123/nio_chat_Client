@@ -15,8 +15,8 @@ public class ClientExample
 {
     AsynchronousChannelGroup channelGroup;
     AsynchronousSocketChannel socketChannel;
-    ByteBuffer readBuffer = ByteBuffer.allocate(100);
-    ByteBuffer writeBuffer = ByteBuffer.allocate(100);
+    ByteBuffer readBuffer = ByteBuffer.allocate(1000);
+    ByteBuffer writeBuffer = ByteBuffer.allocate(1000);
     boolean loggedIn = false;
     String userId = "not set";
     List<Integer> reqIdList = new Vector<>((int) Math.pow(256,3));
@@ -99,7 +99,7 @@ public class ClientExample
         }
     }
 
-    void processOutput(int reqId, int serverResult, ByteBuffer data)
+    void processOutput(int reqId, int serverResult, String data)
     {
         if (serverResult == 0)
         {
@@ -133,7 +133,7 @@ public class ClientExample
                     try
                     {
                         System.out.println("[연결완료: " + socketChannel.getRemoteAddress() + "]");
-                        for(int i = 0; i<reqIdList.size(); i++)
+                        for(int i = 0; i<(int) Math.pow(256,3); i++)
                         {
                             reqIdList.add(-1);
                         }
@@ -167,24 +167,30 @@ public class ClientExample
             {
                 try
                 {
+                    System.out.println("[받기성공]");
                     attachment.flip();
                     byte[] reqIdReceive = new byte[4];
                     byte[] resultReceive = new byte[4];
                     byte[] listReceive = new byte[4];
-                    ByteBuffer reqIdByte = attachment.get(reqIdReceive, 0, 4);
-                    int reqId = Integer.parseInt(reqIdByte.toString());
+                    attachment.get(reqIdReceive);
+                    int reqId = byteToInt(reqIdReceive);
                     attachment.position(4);
-                    ByteBuffer resultByte = attachment.get(resultReceive, 4, 4);
-                    int serverResult = Integer.parseInt(resultByte.toString());
+                    attachment.get(resultReceive);
+                    int serverResult = byteToInt(resultReceive);
                     attachment.position(8);
-                    ByteBuffer data = attachment.get(listReceive, 8, 4);
+                    attachment.get(listReceive);
                     attachment.position(12);
-                    processOutput(reqId,serverResult,data);
+                    String leftover = new String(listReceive, StandardCharsets.UTF_8);
+                    System.out.println("willit work" + reqId+" "+ serverResult+" "+leftover);
+                    processOutput(reqId,serverResult,leftover);
 
                     readBuffer.clear();
                     socketChannel.read(readBuffer,readBuffer,this);
                 }
-                catch(Exception e) {}
+                catch(Exception e)
+                {
+                    e.printStackTrace();
+                }
             }
 
             @Override
@@ -198,9 +204,9 @@ public class ClientExample
 
     void send(int reqId,int reqNum , String userId,int roomNum)
     {
-        writeBuffer.put((byte)reqId);
+        writeBuffer.put(intTobyte(reqId));
         writeBuffer.position(4);
-        writeBuffer.put((byte) reqNum);
+        writeBuffer.put(intTobyte(reqNum));
         writeBuffer.position(8);
         writeBuffer.put(userId.getBytes(StandardCharsets.UTF_8));
         writeBuffer.position(24);
@@ -237,6 +243,29 @@ public class ClientExample
             }
         }
         return -1;
+    }
+
+    public byte[] intTobyte(int value) {
+        byte[] bytes=new byte[4];
+        bytes[0]=(byte)((value&0xFF000000)>>24);
+        bytes[1]=(byte)((value&0x00FF0000)>>16);
+        bytes[2]=(byte)((value&0x0000FF00)>>8);
+        bytes[3]=(byte) (value&0x000000FF);
+
+        return bytes;
+
+    }
+    public int byteToInt(byte[] src) {
+
+        int newValue = 0;
+
+        newValue |= (((int)src[0])<<24)&0xFF000000;
+        newValue |= (((int)src[1])<<16)&0xFF0000;
+        newValue |= (((int)src[2])<<8)&0xFF00;
+        newValue |= (((int)src[3]))&0xFF;
+
+
+        return newValue;
     }
 
     public static void main(String[] args)
