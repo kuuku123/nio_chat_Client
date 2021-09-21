@@ -34,7 +34,6 @@ public class ClientService
                 String name = command.substring(7);
                 userId = name;
                 send(0,name);
-
             }
             else if(command.startsWith("logout", 1))
             {
