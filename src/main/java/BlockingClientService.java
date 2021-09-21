@@ -6,11 +6,9 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.Vector;
 
 
-public class ClientService
+public class BlockingClientService
 {
     SocketChannel socketChannel;
     ByteBuffer readBuffer = ByteBuffer.allocate((int) Math.pow(2,20));
@@ -191,7 +189,7 @@ public class ClientService
 
     public static void main(String[] args)
     {
-        ClientService client = new ClientService();
+        BlockingClientService client = new BlockingClientService();
 
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
         try
