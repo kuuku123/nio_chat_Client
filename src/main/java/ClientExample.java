@@ -1,3 +1,6 @@
+import util.LogFormatter;
+import util.Operation;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -10,9 +13,14 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Vector;
 import java.util.concurrent.Executors;
+import java.util.logging.ConsoleHandler;
+import java.util.logging.Level;
+import java.util.logging.LogManager;
+import java.util.logging.Logger;
 
 public class ClientExample
 {
+    private final static Logger logr = Logger.getGlobal();
     AsynchronousChannelGroup channelGroup;
     AsynchronousSocketChannel socketChannel;
     ByteBuffer readBuffer = ByteBuffer.allocate(1000);
@@ -21,7 +29,19 @@ public class ClientExample
     String userId = "not set";
     List<Integer> reqIdList = new Vector<>((int) Math.pow(256,3));
 
+    private static void setupLogger()
+    {
+        LogFormatter formatter = new LogFormatter();
+        LogManager.getLogManager().reset();
+        logr.setLevel(Level.ALL);
 
+        ConsoleHandler ch = new ConsoleHandler();
+        ch.setLevel(Level.INFO);
+        ch.setFormatter(formatter);
+        logr.addHandler(ch);
+
+
+    }
     void processInput(String command)
     {
         if(command.charAt(0) == '\\') // if it is command
@@ -30,7 +50,7 @@ public class ClientExample
             {
                 if (loggedIn == true)
                 {
-                    System.out.println("already logged in");
+                    logr.severe("already logged in");
                     return;
                 }
                 String name = command.substring(7);
@@ -101,16 +121,18 @@ public class ClientExample
 
     void processOutput(int reqId, int serverResult, String data)
     {
+        Operation operation = Operation.fromInteger(reqIdList.get(reqId));
+
         if (serverResult == 0)
         {
-            int reqNum = reqIdList.get(reqId);
-            reqIdList.add(reqId,0);
-            System.out.println("우선 로그인 됨");
+            reqIdList.add(reqId,-1);
+            logr.info(operation.toString()+" 성공함");
+            logr.info("[requestId: "+reqId+" "+operation.toString()+ " 성공함]");
 
         }
         else if (serverResult == -1)
         {
-            System.out.println("failed");
+            logr.severe("requestId: "+reqId+" : " +operation.toString() +" failed");
         }
     }
 
@@ -132,7 +154,7 @@ public class ClientExample
                 {
                     try
                     {
-                        System.out.println("[연결완료: " + socketChannel.getRemoteAddress() + "]");
+                        logr.info("[연결완료: " + socketChannel.getRemoteAddress() + "]");
                         for(int i = 0; i<(int) Math.pow(256,3); i++)
                         {
                             reqIdList.add(-1);
@@ -144,7 +166,7 @@ public class ClientExample
                 @Override
                 public void failed(Throwable exc, Object attachment)
                 {
-                    System.out.println("[서버 통신 안됨]");
+                    logr.severe("[서버 통신 안됨]");
                     if(socketChannel.isOpen()) stopClient();
                 }
             });
@@ -154,7 +176,7 @@ public class ClientExample
 
     void stopClient()
     {
-        System.out.println("[연결 끊음]");
+        logr.info("[서버 연결 끊김]");
         if(channelGroup != null && !channelGroup.isShutdown()) channelGroup.shutdown();
     }
 
@@ -167,7 +189,6 @@ public class ClientExample
             {
                 try
                 {
-                    System.out.println("[받기성공]");
                     attachment.flip();
                     byte[] reqIdReceive = new byte[4];
                     byte[] resultReceive = new byte[4];
@@ -181,7 +202,9 @@ public class ClientExample
                     attachment.get(listReceive);
                     attachment.position(12);
                     String leftover = new String(listReceive, StandardCharsets.UTF_8);
-                    System.out.println("willit work" + reqId+" "+ serverResult+" "+leftover);
+//                    System.out.println("willit work" + reqId+" "+ serverResult+" "+leftover);
+                    Operation operation = Operation.fromInteger(reqId);
+                    logr.info("[requestId: "+reqId+" "+operation.toString()+ " 응답받기성공]");
                     processOutput(reqId,serverResult,leftover);
 
                     readBuffer.clear();
@@ -196,7 +219,7 @@ public class ClientExample
             @Override
             public void failed(Throwable exc, ByteBuffer attachment)
             {
-                System.out.println("[서버 통신 안됨]");
+                logr.severe("[서버 통신 안됨, receive fail]");
                 stopClient();
             }
         });
@@ -218,15 +241,15 @@ public class ClientExample
             @Override
             public void completed(Integer result, Object attachment)
             {
-                System.out.println("[보내기 완료]"+ result);
-
+                Operation operation = Operation.fromInteger(reqNum);
+                logr.info("[보내기 완료 requestId: "+reqId +" "+operation.toString() +" request]" );
                 writeBuffer.clear();
             }
 
             @Override
             public void failed(Throwable exc, Object attachment)
             {
-                System.out.println("[서버 통신 안됨]");
+                logr.severe("[서버 통신 안됨 , send fail]");
                 stopClient();
             }
         });
@@ -271,7 +294,7 @@ public class ClientExample
     public static void main(String[] args)
     {
         ClientExample clientExample = new ClientExample();
-
+        setupLogger();
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
         try
         {
