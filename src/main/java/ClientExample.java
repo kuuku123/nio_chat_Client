@@ -74,6 +74,7 @@ public class ClientExample
                 if(connection_start_fail)
                 {
                     logr.info("[서버가 준비 안됨 기다려야함]");
+                    connection_start_fail = false;
                     return;
                 }
                 String name = command.substring(7);
@@ -176,6 +177,7 @@ public class ClientExample
                 logoutProcess(op,reqId,serverResult,data);
                 return;
             case sendText:
+                reqIdList.set(reqId,-1);
                 logr.info("text sending success");
                 return;
             case fileUpload:
@@ -194,7 +196,7 @@ public class ClientExample
     {
         if (serverResult == 0)
         {
-            reqIdList.add(reqId,-1);
+            reqIdList.set(reqId,-1);
             loggedIn = true;
             logr.info(op.toString()+" 성공함");
             logr.info("[requestId: "+reqId+" "+op+ " 성공함]");
@@ -210,7 +212,7 @@ public class ClientExample
         try
         {
             socketChannel.close();
-            reqIdList.add(reqId,-1);
+            reqIdList.set(reqId,-1);
             userId = "not set";
             loggedIn = false;
             logr.info("[서버와 연결종료]");
@@ -278,6 +280,8 @@ public class ClientExample
     void stopClient()
     {
         logr.info("[서버 연결 끊김]");
+        loggedIn = false;
+        clearReqIdList();
         if(channelGroup != null && !channelGroup.isShutdown()) channelGroup.shutdown();
     }
 
@@ -363,11 +367,22 @@ public class ClientExample
         {
             if (reqIdList.get(i) == -1)
             {
-                reqIdList.add(i,reqNum);
+                reqIdList.set(i,reqNum);
                 return i;
             }
         }
         return -1;
+    }
+
+    void clearReqIdList()
+    {
+        for (int i = 0; i<reqIdList.size(); i++)
+        {
+            if(reqIdList.get(i) != -1)
+            {
+                reqIdList.set(i,-1);
+            }
+        }
     }
 
     public byte[] intTobyte(int value) {
