@@ -28,6 +28,13 @@ public class ClientExample
     boolean loggedIn = false;
     String userId = "not set";
     List<Integer> reqIdList = new Vector<>((int) Math.pow(256,3));
+    List<Room> roomList = new Vector<>();
+
+    class Room
+    {
+        String RoomName;
+
+    }
 
     private static void setupLogger()
     {
@@ -39,8 +46,6 @@ public class ClientExample
         ch.setLevel(Level.INFO);
         ch.setFormatter(formatter);
         logr.addHandler(ch);
-
-
     }
     void processInput(String command)
     {
@@ -96,9 +101,15 @@ public class ClientExample
             }
             else if(command.startsWith("createroom", 1))
             {
+                int reqId = availableReqId(7);
+                if(loggedIn == false)
+                {
+                    logr.info("login first");
+                    return;
+                }
                 if(command.length() == "createroom".length())
                 {
-
+                    send(reqId,7,userId,-1,"");
                 }
                 else
                 {
@@ -135,7 +146,8 @@ public class ClientExample
         {
             if(loggedIn==false)
             {
-                logr.info("로그인 먼저 ㄱㄱ");
+                logr.info("login first");
+                return;
             }
             else
             {
