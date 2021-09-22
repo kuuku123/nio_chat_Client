@@ -67,7 +67,7 @@ public class ClientExample
                 String name = command.substring(7);
                 userId = name;
                 int reqId = availableReqId(0);
-                send(reqId,0,name,-1);
+                send(reqId,0,name,-1,"");
 
             }
             else if(command.startsWith("logout", 1))
@@ -75,7 +75,7 @@ public class ClientExample
                 if (loggedIn == true)
                 {
                     int reqId = availableReqId(1);
-                    send(reqId,1,userId,-1);
+                    send(reqId,1,userId,-1,"");
                 }
             }
             else if(command.startsWith("uploadfile", 1))
@@ -130,7 +130,18 @@ public class ClientExample
             {
 
             }
-
+        }
+        else
+        {
+            if(loggedIn==false)
+            {
+                logr.info("로그인 먼저 ㄱㄱ");
+            }
+            else
+            {
+                int i = availableReqId(2);
+                send(i,2,userId,-1,command);
+            }
         }
     }
 
@@ -146,6 +157,8 @@ public class ClientExample
                 logoutProcess(op,reqId,serverResult,data);
                 return;
             case sendText:
+                logr.info("text sending success");
+                return;
             case fileUpload:
             case fileList:
             case fileDownload:
@@ -280,7 +293,7 @@ public class ClientExample
         });
     }
 
-    void send(int reqId,int reqNum , String userId,int roomNum)
+    void send(int reqId,int reqNum , String userId,int roomNum,String inputData)
     {
         writeBuffer.put(intTobyte(reqId));
         writeBuffer.position(4);
@@ -290,6 +303,7 @@ public class ClientExample
         writeBuffer.position(24);
         writeBuffer.put((byte) roomNum);
         writeBuffer.position(28);
+        writeBuffer.put(inputData.getBytes(StandardCharsets.UTF_8));
         writeBuffer.flip();
         socketChannel.write(writeBuffer, null, new CompletionHandler<Integer, Object>()
         {
