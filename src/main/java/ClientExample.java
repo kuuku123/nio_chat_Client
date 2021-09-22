@@ -53,6 +53,17 @@ public class ClientExample
                     logr.severe("already logged in");
                     return;
                 }
+                startClient();
+                synchronized (logr)
+                {
+                    try
+                    {
+                        logr.wait();
+                    } catch (InterruptedException e)
+                    {
+                        e.printStackTrace();
+                    }
+                }
                 String name = command.substring(7);
                 userId = name;
                 int reqId = availableReqId(0);
@@ -61,7 +72,11 @@ public class ClientExample
             }
             else if(command.startsWith("logout", 1))
             {
-
+                if (loggedIn == true)
+                {
+                    int reqId = availableReqId(1);
+                    send(reqId,1,userId,-1);
+                }
             }
             else if(command.startsWith("uploadfile", 1))
             {
@@ -121,21 +136,57 @@ public class ClientExample
 
     void processOutput(int reqId, int serverResult, String data)
     {
-        Operation operation = Operation.fromInteger(reqIdList.get(reqId));
-
-        if (serverResult == 0)
+        Operation op = Operation.fromInteger(reqIdList.get(reqId));
+        switch (op)
         {
-            reqIdList.add(reqId,-1);
-            logr.info(operation.toString()+" 성공함");
-            logr.info("[requestId: "+reqId+" "+operation.toString()+ " 성공함]");
-
-        }
-        else if (serverResult == -1)
-        {
-            logr.severe("requestId: "+reqId+" : " +operation.toString() +" failed");
+            case login:
+                loginProcess(op,reqId,serverResult, data);
+                return;
+            case logout:
+                logoutProcess(op,reqId,serverResult,data);
+                return;
+            case sendText:
+            case fileUpload:
+            case fileList:
+            case fileDownload:
+            case fileDelete:
+            case createRoom:
+            case quitRoom:
+            case inviteRoom:
+            case requestQuitRoom:
+            case roomUserList:
         }
     }
 
+    void loginProcess(Operation op, int reqId, int serverResult, String data)
+    {
+        if (serverResult == 0)
+        {
+            reqIdList.add(reqId,-1);
+            loggedIn = true;
+            logr.info(op.toString()+" 성공함");
+            logr.info("[requestId: "+reqId+" "+op+ " 성공함]");
+        }
+        else if (serverResult == -1)
+        {
+            logr.severe("requestId: "+reqId+" : " +op +" failed");
+        }
+    }
+
+    void logoutProcess(Operation op, int reqId, int serverResult, String data)
+    {
+        try
+        {
+            socketChannel.close();
+            reqIdList.add(reqId,-1);
+            userId = "not set";
+            loggedIn = false;
+            logr.info("[서버와 연결종료]");
+        } catch (IOException e)
+        {
+            e.printStackTrace();
+        }
+    }
 
     void startClient()
     {
@@ -158,6 +209,10 @@ public class ClientExample
                         for(int i = 0; i<(int) Math.pow(256,3); i++)
                         {
                             reqIdList.add(-1);
+                        }
+                        synchronized (logr)
+                        {
+                            logr.notify();
                         }
                     }
                     catch (IOException e){}
@@ -203,8 +258,8 @@ public class ClientExample
                     attachment.position(12);
                     String leftover = new String(listReceive, StandardCharsets.UTF_8);
 //                    System.out.println("willit work" + reqId+" "+ serverResult+" "+leftover);
-                    Operation operation = Operation.fromInteger(reqId);
-                    logr.info("[requestId: "+reqId+" "+operation.toString()+ " 응답받기성공]");
+                    Operation op = Operation.fromInteger(reqId);
+                    logr.info("[requestId: "+reqId+" "+op.toString()+ " 응답받기성공]");
                     processOutput(reqId,serverResult,leftover);
 
                     readBuffer.clear();
@@ -241,8 +296,8 @@ public class ClientExample
             @Override
             public void completed(Integer result, Object attachment)
             {
-                Operation operation = Operation.fromInteger(reqNum);
-                logr.info("[보내기 완료 requestId: "+reqId +" "+operation.toString() +" request]" );
+                Operation op = Operation.fromInteger(reqNum);
+                logr.info("[보내기 완료 requestId: "+reqId +" "+op.toString() +" request]" );
                 writeBuffer.clear();
             }
 
@@ -298,7 +353,6 @@ public class ClientExample
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
         try
         {
-            clientExample.startClient();
             String input;
             while((input = br.readLine()) != null)
             {
