@@ -9,6 +9,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousChannelGroup;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
+import java.nio.channels.NotYetConnectedException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Vector;
@@ -26,6 +27,7 @@ public class ClientExample
     ByteBuffer readBuffer = ByteBuffer.allocate(1000);
     ByteBuffer writeBuffer = ByteBuffer.allocate(1000);
     boolean loggedIn = false;
+    boolean connection_start_fail = false;
     String userId = "not set";
     List<Integer> reqIdList = new Vector<>((int) Math.pow(256,3));
     List<Room> roomList = new Vector<>();
@@ -58,16 +60,21 @@ public class ClientExample
                     logr.severe("already logged in");
                     return;
                 }
-                startClient();
                 synchronized (logr)
                 {
                     try
                     {
+                        startClient();
                         logr.wait();
                     } catch (InterruptedException e)
                     {
                         e.printStackTrace();
                     }
+                }
+                if(connection_start_fail)
+                {
+                    logr.info("[서버가 준비 안됨 기다려야함]");
+                    return;
                 }
                 String name = command.substring(7);
                 userId = name;
@@ -246,12 +253,26 @@ public class ClientExample
                 @Override
                 public void failed(Throwable exc, Object attachment)
                 {
-                    logr.severe("[서버 통신 안됨]");
+                    logr.severe("[서버 통신 안됨 connect fail]");
+                    connection_start_fail = true;
                     if(socketChannel.isOpen()) stopClient();
+                    synchronized (logr)
+                    {
+                        logr.notify();
+                    }
                 }
             });
         }
-        catch (IOException e){}
+        catch (IOException e)
+        {}
+        catch (NotYetConnectedException e)
+        {
+        }
+        catch(Exception e)
+        {
+            e.printStackTrace();
+        }
+
     }
 
     void stopClient()
