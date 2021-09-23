@@ -32,7 +32,7 @@ public class ClientExample
     String userId = "not set";
     List<Integer> reqIdList = new Vector<>((int) Math.pow(256,3));
     List<Integer> roomList = new Vector<>();
-    int curRoom;
+    int curRoom = -1;
 
 
     private static void setupLogger()
@@ -129,11 +129,22 @@ public class ClientExample
             }
             else if(command.startsWith("inviteuser", 1))
             {
-
-            }
-            else if(command.startsWith("banuser", 1))
-            {
-
+                if(loggedIn == false)
+                {
+                    logr.info("login first");
+                    return;
+                }
+                else if(loggedIn == true && curRoom == -1)
+                {
+                    logr.info("make your chatroom first");
+                    return;
+                }
+                else if(loggedIn == true && curRoom != -1)
+                {
+                    String userList = command.substring(11);
+                    int i = availableReqId(9);
+                    send(i,9,userId,curRoom,userList);
+                }
             }
             else if(command.startsWith("enterroom", 1))
             {
@@ -199,7 +210,7 @@ public class ClientExample
                     return;
                 case quitRoom:
                 case inviteRoom:
-                case requestQuitRoom:
+                    inviteRoomProcess(op,reqId,serverResult,data);
                 case roomUserList:
             }
     }
@@ -208,7 +219,6 @@ public class ClientExample
     {
         if (serverResult == 0)
         {
-            reqIdList.set(reqId,-1);
             loggedIn = true;
             logr.info(op.toString()+" 성공함");
             logr.info("[requestId: "+reqId+" "+op+ "success]");
@@ -221,6 +231,7 @@ public class ClientExample
         {
             logr.info("requestId: "+reqId+" : " + " 중복임으로 다른 아이디입력하세요");
         }
+        reqIdList.set(reqId,-1);
     }
 
     void logoutProcess(OperationEnum op, int reqId, int serverResult)
@@ -230,7 +241,6 @@ public class ClientExample
             try
             {
                 socketChannel.close();
-                reqIdList.set(reqId,-1);
                 userId = "not set";
                 loggedIn = false;
                 logr.info("[서버와 연결종료]");
@@ -243,6 +253,7 @@ public class ClientExample
         {
             logr.info("logout failed");
         }
+        reqIdList.set(reqId,-1);
     }
 
     void createRoomProcess(OperationEnum op, int reqId, int serverResult, ByteBuffer data)
@@ -258,7 +269,22 @@ public class ClientExample
         {
             logr.severe("requestId: "+reqId+" : " +op +" failed");
         }
+        reqIdList.set(reqId,-1);
     }
+
+    void inviteRoomProcess(OperationEnum op, int reqId, int serverResult, ByteBuffer data)
+    {
+        if(serverResult == 0)
+        {
+            logr.info("[requestId: "+reqId+" "+op+ " success]");
+        }
+        else
+        {
+            logr.severe("requestId: "+reqId+" : " +op +" failed");
+        }
+        reqIdList.set(reqId,-1);
+    }
+
 
 
 
@@ -394,7 +420,7 @@ public class ClientExample
 //                    System.out.println("willit work" + reqId+" "+ serverResult+" "+leftover);
                         processOutput(reqId,serverResult,attachment);
                     }
-
+                    readBuffer = ByteBuffer.allocate(1000);
                     readBuffer.clear();
                     socketChannel.read(readBuffer,readBuffer,this);
                 }
@@ -432,6 +458,7 @@ public class ClientExample
             {
                 OperationEnum op = OperationEnum.fromInteger(reqNum);
                 logr.info("[보내기 완료 requestId: "+reqId +" "+op.toString() +" request]" );
+                writeBuffer = ByteBuffer.allocate(1000);
                 writeBuffer.clear();
             }
 
