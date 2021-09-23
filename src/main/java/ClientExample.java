@@ -1,5 +1,6 @@
+import util.BroadcastEnum;
 import util.LogFormatter;
-import util.Operation;
+import util.OperationEnum;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -30,13 +31,9 @@ public class ClientExample
     boolean connection_start_fail = false;
     String userId = "not set";
     List<Integer> reqIdList = new Vector<>((int) Math.pow(256,3));
-    List<Room> roomList = new Vector<>();
+    List<Integer> roomList = new Vector<>();
+    int curRoom;
 
-    class Room
-    {
-        String RoomName;
-
-    }
 
     private static void setupLogger()
     {
@@ -150,6 +147,11 @@ public class ClientExample
             {
 
             }
+            else
+            {
+                logr.info("no such command");
+                return;
+            }
         }
         else
         {
@@ -166,41 +168,50 @@ public class ClientExample
         }
     }
 
-    void processOutput(int reqId, int serverResult, String data)
+    void processOutput(int reqId, int serverResult, ByteBuffer data)
     {
-        Operation op = Operation.fromInteger(reqIdList.get(reqId));
-        switch (op)
-        {
-            case login:
-                loginProcess(op,reqId,serverResult, data);
-                return;
-            case logout:
-                logoutProcess(op,reqId,serverResult,data);
-                return;
-            case sendText:
-                reqIdList.set(reqId,-1);
-                logr.info("text sending success");
-                return;
-            case fileUpload:
-            case fileList:
-            case fileDownload:
-            case fileDelete:
-            case createRoom:
-            case quitRoom:
-            case inviteRoom:
-            case requestQuitRoom:
-            case roomUserList:
-        }
+            OperationEnum op = OperationEnum.fromInteger(reqIdList.get(reqId));
+            switch (op)
+            {
+                case login:
+                    loginProcess(op,reqId,serverResult);
+                    return;
+                case logout:
+                    logoutProcess(op,reqId,serverResult);
+                    return;
+                case sendText:
+                    reqIdList.set(reqId,-1);
+                    if (serverResult == 0)
+                    {
+                        logr.info("text send success");
+                    }
+                    else if(serverResult != 0)
+                    {
+                        logr.info("text send fail");
+                    }
+                    return;
+                case fileUpload:
+                case fileList:
+                case fileDownload:
+                case fileDelete:
+                case createRoom:
+                    createRoomProcess(op,reqId,serverResult,data);
+                    return;
+                case quitRoom:
+                case inviteRoom:
+                case requestQuitRoom:
+                case roomUserList:
+            }
     }
 
-    void loginProcess(Operation op, int reqId, int serverResult, String data)
+    void loginProcess(OperationEnum op, int reqId, int serverResult)
     {
         if (serverResult == 0)
         {
             reqIdList.set(reqId,-1);
             loggedIn = true;
             logr.info(op.toString()+" 성공함");
-            logr.info("[requestId: "+reqId+" "+op+ " 성공함]");
+            logr.info("[requestId: "+reqId+" "+op+ "success]");
         }
         else if (serverResult == 1)
         {
@@ -212,7 +223,7 @@ public class ClientExample
         }
     }
 
-    void logoutProcess(Operation op, int reqId, int serverResult, String data)
+    void logoutProcess(OperationEnum op, int reqId, int serverResult)
     {
         if(serverResult == 0)
         {
@@ -233,6 +244,55 @@ public class ClientExample
             logr.info("logout failed");
         }
     }
+
+    void createRoomProcess(OperationEnum op, int reqId, int serverResult, ByteBuffer data)
+    {
+        if (serverResult == 0)
+        {
+            int roomNum = data.getInt(8);
+            curRoom = roomNum;
+            roomList.add(roomNum);
+            logr.info("[requestId: "+reqId+" "+op+ " success]");
+        }
+        else
+        {
+            logr.severe("requestId: "+reqId+" : " +op +" failed");
+        }
+    }
+
+
+
+    void processBroadcast(int broadcastNum, String data, ByteBuffer leftover)
+    {
+        BroadcastEnum b = BroadcastEnum.fromInteger(broadcastNum);
+
+        switch (b)
+        {
+            case invite_user_to_room:
+                return;
+            case quit_room:
+                return;
+            case text:
+                broadcastText(data,leftover);
+                return;
+            case file_upload:
+                return;
+            case file_remove:
+                return;
+        }
+    }
+
+    void broadcastText(String sender, ByteBuffer leftover)
+    {
+        byte[] chat = new byte[1000];
+        int position = leftover.position();
+        int limit = leftover.limit();
+        leftover.get(chat,0,limit-position);
+        String chatting = new String(removeZero(chat), StandardCharsets.UTF_8);
+        System.out.println(sender +" : "+chatting);
+    }
+
+
 
     void startClient()
     {
@@ -308,24 +368,32 @@ public class ClientExample
                 {
                     attachment.flip();
                     byte[] reqIdReceive = new byte[4];
-                    byte[] resultReceive = new byte[4];
-                    byte[] listReceive = new byte[4];
                     attachment.get(reqIdReceive);
                     int reqId = byteToInt(reqIdReceive);
                     attachment.position(4);
-                    attachment.get(resultReceive);
-                    int serverResult = byteToInt(resultReceive);
-                    attachment.position(8);
-                    if(attachment.limit() != attachment.position())
+                    if (reqId == -1)
                     {
-                        attachment.get(listReceive);
-                        attachment.position(12);
+                        byte[] broadcastNumReceive = new byte[4];
+                        byte[] userIdReceive = new byte[16];
+                        byte[] leftover = new byte[1000];
+                        attachment.get(broadcastNumReceive);
+                        int broadcastNum = byteToInt(broadcastNumReceive);
+                        attachment.position(8);
+                        attachment.get(userIdReceive);
+                        String info = new String(removeZero(userIdReceive), StandardCharsets.UTF_8);
+                        attachment.position(24);
+
+                        processBroadcast(broadcastNum,info,attachment);
                     }
-                    String leftover = new String(listReceive, StandardCharsets.UTF_8);
+                    else
+                    {
+                        byte[] resultReceive = new byte[4];
+                        attachment.get(resultReceive);
+                        int serverResult = byteToInt(resultReceive);
+                        attachment.position(8);
 //                    System.out.println("willit work" + reqId+" "+ serverResult+" "+leftover);
-                    Operation op = Operation.fromInteger(reqId);
-                    logr.info("[requestId: "+reqId+" "+op.toString()+ " 응답받기성공]");
-                    processOutput(reqId,serverResult,leftover);
+                        processOutput(reqId,serverResult,attachment);
+                    }
 
                     readBuffer.clear();
                     socketChannel.read(readBuffer,readBuffer,this);
@@ -362,7 +430,7 @@ public class ClientExample
             @Override
             public void completed(Integer result, Object attachment)
             {
-                Operation op = Operation.fromInteger(reqNum);
+                OperationEnum op = OperationEnum.fromInteger(reqNum);
                 logr.info("[보내기 완료 requestId: "+reqId +" "+op.toString() +" request]" );
                 writeBuffer.clear();
             }
@@ -421,6 +489,23 @@ public class ClientExample
 
 
         return newValue;
+    }
+
+
+    private byte[] removeZero(byte[] reqUserId)
+    {
+        int count = 0;
+        for (byte b : reqUserId)
+        {
+            if (b == (byte) 0) count++;
+        }
+        int left = reqUserId.length - count;
+        byte[] n = new byte[left];
+        for (int i = 0; i<left; i++)
+        {
+            n[i] = reqUserId[i];
+        }
+        return n;
     }
 
     public static void main(String[] args)
