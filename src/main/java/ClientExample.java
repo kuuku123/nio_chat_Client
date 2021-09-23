@@ -90,6 +90,10 @@ public class ClientExample
                     int reqId = availableReqId(1);
                     send(reqId,1,userId,-1,"");
                 }
+                else if (loggedIn == false)
+                {
+                    logr.info("로그인 아직 안함, 로그인먼저");
+                }
             }
             else if(command.startsWith("uploadfile", 1))
             {
@@ -115,13 +119,10 @@ public class ClientExample
                     logr.info("login first");
                     return;
                 }
-                if(command.length() == "createroom".length())
+                else if(loggedIn == true)
                 {
-                    send(reqId,7,userId,-1,"");
-                }
-                else
-                {
-
+                    String roomName = command.substring(12);
+                    send(reqId,7,userId,-1,roomName);
                 }
 
             }
@@ -201,24 +202,35 @@ public class ClientExample
             logr.info(op.toString()+" 성공함");
             logr.info("[requestId: "+reqId+" "+op+ " 성공함]");
         }
-        else if (serverResult == -1)
+        else if (serverResult == 1)
         {
             logr.severe("requestId: "+reqId+" : " +op +" failed");
+        }
+        else if (serverResult == 4)
+        {
+            logr.info("requestId: "+reqId+" : " + " 중복임으로 다른 아이디입력하세요");
         }
     }
 
     void logoutProcess(Operation op, int reqId, int serverResult, String data)
     {
-        try
+        if(serverResult == 0)
         {
-            socketChannel.close();
-            reqIdList.set(reqId,-1);
-            userId = "not set";
-            loggedIn = false;
-            logr.info("[서버와 연결종료]");
-        } catch (IOException e)
+            try
+            {
+                socketChannel.close();
+                reqIdList.set(reqId,-1);
+                userId = "not set";
+                loggedIn = false;
+                logr.info("[서버와 연결종료]");
+            } catch (IOException e)
+            {
+                e.printStackTrace();
+            }
+        }
+        else if(serverResult == 1)
         {
-            e.printStackTrace();
+            logr.info("logout failed");
         }
     }
 
@@ -304,8 +316,11 @@ public class ClientExample
                     attachment.get(resultReceive);
                     int serverResult = byteToInt(resultReceive);
                     attachment.position(8);
-                    attachment.get(listReceive);
-                    attachment.position(12);
+                    if(attachment.limit() != attachment.position())
+                    {
+                        attachment.get(listReceive);
+                        attachment.position(12);
+                    }
                     String leftover = new String(listReceive, StandardCharsets.UTF_8);
 //                    System.out.println("willit work" + reqId+" "+ serverResult+" "+leftover);
                     Operation op = Operation.fromInteger(reqId);
