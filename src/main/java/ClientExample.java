@@ -48,7 +48,7 @@ public class ClientExample
     }
     void processInput(String command)
     {
-        if(command.charAt(0) == '\\') // if it is command
+        if(command.length()>0 && command.charAt(0) == '\\') // if it is command
         {
             if(command.startsWith("login", 1))
             {
@@ -136,7 +136,7 @@ public class ClientExample
                 }
                 else if(loggedIn == true && curRoom == -1)
                 {
-                    logr.info("make your chatroom first");
+                    logr.info("make YOUR chatroom first ");
                     return;
                 }
                 else if(loggedIn == true && curRoom != -1)
@@ -169,6 +169,11 @@ public class ClientExample
             if(loggedIn==false)
             {
                 logr.info("login first");
+                return;
+            }
+            else if(loggedIn == true && curRoom == -1)
+            {
+                logr.info("make YOUR chatroom first ");
                 return;
             }
             else
@@ -542,6 +547,7 @@ public class ClientExample
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
         try
         {
+            System.out.println("입력 가능...");
             String input;
             while((input = br.readLine()) != null)
             {
