@@ -191,7 +191,7 @@ public class ClientExample
             switch (op)
             {
                 case login:
-                    loginProcess(op,reqId,serverResult);
+                    loginProcess(op,reqId,serverResult,data);
                     return;
                 case logout:
                     logoutProcess(op,reqId,serverResult);
@@ -221,11 +221,13 @@ public class ClientExample
             }
     }
 
-    void loginProcess(OperationEnum op, int reqId, int serverResult)
+    void loginProcess(OperationEnum op, int reqId, int serverResult,ByteBuffer data)
     {
         if (serverResult == 0)
         {
             loggedIn = true;
+            int lastRoomNum = data.getInt(8);
+            if (lastRoomNum != -2) curRoom = lastRoomNum;
             logr.info(op.toString()+" 성공함");
             logr.info("[requestId: "+reqId+" "+op+ "success]");
         }
