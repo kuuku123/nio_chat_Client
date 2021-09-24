@@ -23,6 +23,7 @@ import java.util.logging.Logger;
 public class ClientExample
 {
     private final static Logger logr = Logger.getGlobal();
+    private Object for_startClient = new Object();
     AsynchronousChannelGroup channelGroup;
     AsynchronousSocketChannel socketChannel;
     ByteBuffer readBuffer = ByteBuffer.allocate(1000);
@@ -57,12 +58,12 @@ public class ClientExample
                     logr.severe("already logged in");
                     return;
                 }
-                synchronized (logr)
+                synchronized (for_startClient)
                 {
                     try
                     {
                         startClient();
-                        logr.wait();
+                        for_startClient.wait();
                     } catch (InterruptedException e)
                     {
                         e.printStackTrace();
@@ -141,7 +142,7 @@ public class ClientExample
                 }
                 else if(loggedIn == true && curRoom != -1)
                 {
-                    String userList = command.substring(11);
+                    String userList = command.substring(12);
                     int i = availableReqId(9);
                     send(i,9,userId,curRoom,userList);
                 }
@@ -300,6 +301,7 @@ public class ClientExample
         switch (b)
         {
             case invite_user_to_room:
+                broadcastInvite(data,leftover);
                 return;
             case quit_room:
                 return;
@@ -323,6 +325,12 @@ public class ClientExample
         System.out.println(sender +" : "+chatting);
     }
 
+    void broadcastInvite(String sender, ByteBuffer leftover)
+    {
+        int roomNum = leftover.getInt(24);
+        System.out.println(roomNum + "방번호임");
+        curRoom = roomNum;
+    }
 
 
     void startClient()
@@ -347,9 +355,9 @@ public class ClientExample
                         {
                             reqIdList.add(-1);
                         }
-                        synchronized (logr)
+                        synchronized (for_startClient)
                         {
-                            logr.notify();
+                            for_startClient.notify();
                         }
                     }
                     catch (IOException e){}
@@ -361,9 +369,9 @@ public class ClientExample
                     logr.severe("[서버 통신 안됨 connect fail]");
                     connection_start_fail = true;
                     if(socketChannel.isOpen()) stopClient();
-                    synchronized (logr)
+                    synchronized (for_startClient)
                     {
-                        logr.notify();
+                        for_startClient.notify();
                     }
                 }
             });
