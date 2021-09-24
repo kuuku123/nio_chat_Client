@@ -269,7 +269,7 @@ public class ClientExample
             int roomNum = data.getInt(8);
             curRoom = roomNum;
             roomList.add(roomNum);
-            logr.info("[requestId: "+reqId+" "+op+ " success]");
+            logr.info("[requestId: "+reqId+" "+" roomNum: "+roomNum+" "+op+ " success]");
         }
         else
         {
@@ -460,7 +460,7 @@ public class ClientExample
         writeBuffer.position(8);
         writeBuffer.put(userId.getBytes(StandardCharsets.UTF_8));
         writeBuffer.position(24);
-        writeBuffer.put((byte) roomNum);
+        writeBuffer.put(intTobyte(roomNum));
         writeBuffer.position(28);
         writeBuffer.put(inputData.getBytes(StandardCharsets.UTF_8));
         writeBuffer.flip();
