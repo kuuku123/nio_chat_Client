@@ -142,9 +142,11 @@ public class ClientExample
                 }
                 else if(loggedIn == true && curRoom != -1)
                 {
-                    String userList = command.substring(12);
+                    int length = command.length();
+                    String userList = command.substring(12,length-1);
+                    int roomNum = Integer.parseInt( command.substring(length-1));
                     int i = availableReqId(9);
-                    send(i,9,userId,curRoom,userList);
+                    send(i,9,userId,roomNum,userList);
                 }
             }
             else if(command.startsWith("enterroom", 1))
@@ -226,8 +228,11 @@ public class ClientExample
         if (serverResult == 0)
         {
             loggedIn = true;
-            int lastRoomNum = data.getInt(8);
-            if (lastRoomNum != -2) curRoom = lastRoomNum;
+            if (data.limit() > 8)
+            {
+                int lastRoomNum = data.getInt(8);
+                if (lastRoomNum != -2) curRoom = lastRoomNum;
+            }
             logr.info(op.toString()+" 성공함");
             logr.info("[requestId: "+reqId+" "+op+ "success]");
         }
