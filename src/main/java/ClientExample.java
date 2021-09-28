@@ -78,7 +78,7 @@ public class ClientExample
                 String name = command.substring(7);
                 userId = name;
                 int reqId = availableReqId(0);
-                send(reqId,0,name,-1,"");
+                send(reqId,0,name,-1,ByteBuffer.allocate(0));
 
             }
             else if(command.startsWith("logout", 1))
@@ -86,7 +86,7 @@ public class ClientExample
                 if (loggedIn == true)
                 {
                     int reqId = availableReqId(1);
-                    send(reqId,1,userId,-1,"");
+                    send(reqId,1,userId,-1,ByteBuffer.allocate(0));
                 }
                 else if (loggedIn == false)
                 {
@@ -120,7 +120,10 @@ public class ClientExample
                 else if(loggedIn == true)
                 {
                     String roomName = command.substring(12);
-                    send(reqId,7,userId,-1,roomName);
+                    ByteBuffer roomNameBuf = ByteBuffer.allocate(16);
+                    roomNameBuf.put(roomName.getBytes(StandardCharsets.UTF_8));
+                    roomNameBuf.flip();
+                    send(reqId,7,userId,-1,roomNameBuf);
                 }
 
             }
@@ -145,8 +148,18 @@ public class ClientExample
                     int length = command.length();
                     String userList = command.substring(12,length-1);
                     int roomNum = Integer.parseInt( command.substring(length-1));
+                    String[] s = userList.split(" ");
+                    int userCount = s.length;
+                    ByteBuffer inviteBuffer = ByteBuffer.allocate(userCount * 16 + 4);
+                    inviteBuffer.putInt(userCount);
+                    for (int i = 0; i<userCount; i++)
+                    {
+                        inviteBuffer.position(i*16+4);
+                        inviteBuffer.put(s[i].getBytes(StandardCharsets.UTF_8));
+                    }
                     int i = availableReqId(9);
-                    send(i,9,userId,roomNum,userList);
+                    inviteBuffer.flip();
+                    send(i,9,userId,roomNum,inviteBuffer);
                 }
             }
             else if(command.startsWith("enterroom", 1))
@@ -182,7 +195,10 @@ public class ClientExample
             else
             {
                 int i = availableReqId(2);
-                send(i,2,userId,-1,command);
+                ByteBuffer textBuffer = ByteBuffer.allocate(1000);
+                textBuffer.put(command.getBytes(StandardCharsets.UTF_8));
+                textBuffer.flip();
+                send(i,2,userId,-1,textBuffer);
             }
         }
     }
@@ -459,7 +475,7 @@ public class ClientExample
         });
     }
 
-    void send(int reqId,int reqNum , String userId,int roomNum,String inputData)
+    void send(int reqId,int reqNum , String userId,int roomNum,ByteBuffer inputData)
     {
         writeBuffer.put(intTobyte(reqId));
         writeBuffer.position(4);
@@ -469,7 +485,7 @@ public class ClientExample
         writeBuffer.position(24);
         writeBuffer.put(intTobyte(roomNum));
         writeBuffer.position(28);
-        writeBuffer.put(inputData.getBytes(StandardCharsets.UTF_8));
+        writeBuffer.put(inputData);
         writeBuffer.flip();
         socketChannel.write(writeBuffer, null, new CompletionHandler<Integer, Object>()
         {
