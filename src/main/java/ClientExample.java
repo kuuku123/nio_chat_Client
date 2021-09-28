@@ -216,185 +216,6 @@ public class ClientExample
         }
     }
 
-    void processOutput(int reqId, int serverResult, ByteBuffer data)
-    {
-            OperationEnum op = OperationEnum.fromInteger(reqIdList.get(reqId));
-            switch (op)
-            {
-                case login:
-                    loginProcess(op,reqId,serverResult,data);
-                    return;
-                case logout:
-                    logoutProcess(op,reqId,serverResult);
-                    return;
-                case sendText:
-                    reqIdList.set(reqId,-1);
-                    if (serverResult == 0)
-                    {
-                        logr.info("text send success");
-                    }
-                    else if(serverResult != 0)
-                    {
-                        logr.info("text send fail");
-                    }
-                    return;
-                case fileUpload:
-                case fileList:
-                case fileDownload:
-                case fileDelete:
-                case createRoom:
-                    createRoomProcess(op,reqId,serverResult,data);
-                    return;
-                case quitRoom:
-                case inviteRoom:
-                    inviteRoomProcess(op,reqId,serverResult,data);
-                case roomUserList:
-            }
-    }
-
-    void loginProcess(OperationEnum op, int reqId, int serverResult,ByteBuffer data)
-    {
-        if (serverResult == 0)
-        {
-            loggedIn = true;
-            if (data.limit() > 8)
-            {
-                int lastRoomNum = data.getInt(8);
-                if (lastRoomNum != -2) curRoom = lastRoomNum;
-            }
-            logr.info(op.toString()+" 성공함");
-            logr.info("[requestId: "+reqId+" "+op+ "success]");
-        }
-        else if (serverResult == 1)
-        {
-            logr.severe("requestId: "+reqId+" : " +op +" failed");
-        }
-        else if (serverResult == 4)
-        {
-            logr.info("requestId: "+reqId+" : " + " 중복임으로 다른 아이디입력하세요");
-        }
-        reqIdList.set(reqId,-1);
-    }
-
-    void logoutProcess(OperationEnum op, int reqId, int serverResult)
-    {
-        if(serverResult == 0)
-        {
-            try
-            {
-                socketChannel.close();
-                userId = "not set";
-                loggedIn = false;
-                logr.info("[서버와 연결종료]");
-            } catch (IOException e)
-            {
-                e.printStackTrace();
-            }
-        }
-        else if(serverResult == 1)
-        {
-            logr.info("logout failed");
-        }
-        reqIdList.set(reqId,-1);
-    }
-
-    void createRoomProcess(OperationEnum op, int reqId, int serverResult, ByteBuffer data)
-    {
-        if (serverResult == 0)
-        {
-            int roomNum = data.getInt(8);
-            curRoom = roomNum;
-            roomList.add(roomNum);
-            logr.info("[requestId: "+reqId+" "+" roomNum: "+roomNum+" "+op+ " success]");
-        }
-        else
-        {
-            logr.severe("requestId: "+reqId+" : " +op +" failed");
-        }
-        reqIdList.set(reqId,-1);
-    }
-
-    void inviteRoomProcess(OperationEnum op, int reqId, int serverResult, ByteBuffer data)
-    {
-        if(serverResult == 0)
-        {
-            logr.info("[requestId: "+reqId+" "+op+ " success]");
-        }
-        else
-        {
-            logr.severe("requestId: "+reqId+" : " +op +" failed");
-        }
-        reqIdList.set(reqId,-1);
-    }
-
-
-
-
-    void processBroadcast(int broadcastNum, ByteBuffer leftover)
-    {
-        BroadcastEnum b = BroadcastEnum.fromInteger(broadcastNum);
-
-        switch (b)
-        {
-            case invite_user_to_room:
-                synchronized (for_broadcastInvite)
-                {
-                    broadcastInvite(leftover);
-                }
-                return;
-            case quit_room:
-                return;
-            case text:
-                broadcastText(leftover);
-                return;
-            case file_upload:
-                return;
-            case file_remove:
-                return;
-        }
-    }
-
-    void broadcastText(ByteBuffer leftover)
-    {
-        leftover.position(12);
-        byte[] senderReceive = new byte[16];
-        leftover.get(senderReceive,0,16);
-        String sender = new String(removeZero(senderReceive), StandardCharsets.UTF_8);
-
-        byte[] chat = new byte[1000];
-        leftover.position(28);
-        int position = leftover.position();
-        int limit = leftover.limit();
-        leftover.get(chat,0,limit-position);
-        String chatting = new String(removeZero(chat), StandardCharsets.UTF_8);
-        System.out.println(sender +" : "+chatting);
-    }
-
-    void broadcastInvite(ByteBuffer leftover)
-    {
-        int roomNum = leftover.getInt();
-        byte[] inviteeReceive = new byte[16];
-        leftover.get(inviteeReceive,0,16);
-        String invitee = new String(removeZero(inviteeReceive), StandardCharsets.UTF_8);
-        List<String> inviters = new Vector<>();
-        while(leftover.position() <leftover.limit())
-        {
-            byte[] inviterReceive = new byte[16];
-            leftover.get(inviterReceive,0,16);
-            String s = new String(removeZero(inviterReceive), StandardCharsets.UTF_8);
-            inviters.add(s);
-        }
-        String inviterToString = "";
-        for(String s : inviters)
-        {
-            inviterToString += " "+ s;
-        }
-
-        logr.info(invitee + " has invited "+ inviterToString+" to " +roomNum + " room");
-        curRoom = roomNum;
-        roomList.add(curRoom);
-    }
-
 
     void startClient()
     {
@@ -543,6 +364,188 @@ public class ClientExample
             }
         });
     }
+
+
+    void processOutput(int reqId, int serverResult, ByteBuffer data)
+    {
+        OperationEnum op = OperationEnum.fromInteger(reqIdList.get(reqId));
+        switch (op)
+        {
+            case login:
+                loginProcess(op,reqId,serverResult,data);
+                return;
+            case logout:
+                logoutProcess(op,reqId,serverResult);
+                return;
+            case sendText:
+                reqIdList.set(reqId,-1);
+                if (serverResult == 0)
+                {
+                    logr.info("text send success");
+                }
+                else if(serverResult != 0)
+                {
+                    logr.info("text send fail");
+                }
+                return;
+            case fileUpload:
+            case fileList:
+            case fileDownload:
+            case fileDelete:
+            case createRoom:
+                createRoomProcess(op,reqId,serverResult,data);
+                return;
+            case quitRoom:
+            case inviteRoom:
+                inviteRoomProcess(op,reqId,serverResult,data);
+            case roomUserList:
+        }
+    }
+
+    void loginProcess(OperationEnum op, int reqId, int serverResult,ByteBuffer data)
+    {
+        if (serverResult == 0)
+        {
+            loggedIn = true;
+            if (data.limit() > 8)
+            {
+                int lastRoomNum = data.getInt(8);
+                if (lastRoomNum != -2) curRoom = lastRoomNum;
+            }
+            logr.info(op.toString()+" 성공함");
+            logr.info("[requestId: "+reqId+" "+op+ "success]");
+        }
+        else if (serverResult == 1)
+        {
+            logr.severe("requestId: "+reqId+" : " +op +" failed");
+        }
+        else if (serverResult == 4)
+        {
+            logr.info("requestId: "+reqId+" : " + " 중복임으로 다른 아이디입력하세요");
+        }
+        reqIdList.set(reqId,-1);
+    }
+
+    void logoutProcess(OperationEnum op, int reqId, int serverResult)
+    {
+        if(serverResult == 0)
+        {
+            try
+            {
+                socketChannel.close();
+                userId = "not set";
+                loggedIn = false;
+                logr.info("[서버와 연결종료]");
+            } catch (IOException e)
+            {
+                e.printStackTrace();
+            }
+        }
+        else if(serverResult == 1)
+        {
+            logr.info("logout failed");
+        }
+        reqIdList.set(reqId,-1);
+    }
+
+    void createRoomProcess(OperationEnum op, int reqId, int serverResult, ByteBuffer data)
+    {
+        if (serverResult == 0)
+        {
+            int roomNum = data.getInt(8);
+            curRoom = roomNum;
+            roomList.add(roomNum);
+            logr.info("[requestId: "+reqId+" "+" roomNum: "+roomNum+" "+op+ " success]");
+        }
+        else
+        {
+            logr.severe("requestId: "+reqId+" : " +op +" failed");
+        }
+        reqIdList.set(reqId,-1);
+    }
+
+    void inviteRoomProcess(OperationEnum op, int reqId, int serverResult, ByteBuffer data)
+    {
+        if(serverResult == 0)
+        {
+            logr.info("[requestId: "+reqId+" "+op+ " success]");
+        }
+        else
+        {
+            logr.severe("requestId: "+reqId+" : " +op +" failed");
+        }
+        reqIdList.set(reqId,-1);
+    }
+
+
+
+
+    void processBroadcast(int broadcastNum, ByteBuffer leftover)
+    {
+        BroadcastEnum b = BroadcastEnum.fromInteger(broadcastNum);
+
+        switch (b)
+        {
+            case invite_user_to_room:
+                synchronized (for_broadcastInvite)
+                {
+                    broadcastInvite(leftover);
+                }
+                return;
+            case quit_room:
+                return;
+            case text:
+                broadcastText(leftover);
+                return;
+            case file_upload:
+                return;
+            case file_remove:
+                return;
+        }
+    }
+
+    void broadcastText(ByteBuffer leftover)
+    {
+        leftover.position(12);
+        byte[] senderReceive = new byte[16];
+        leftover.get(senderReceive,0,16);
+        String sender = new String(removeZero(senderReceive), StandardCharsets.UTF_8);
+
+        byte[] chat = new byte[1000];
+        leftover.position(28);
+        int position = leftover.position();
+        int limit = leftover.limit();
+        leftover.get(chat,0,limit-position);
+        String chatting = new String(removeZero(chat), StandardCharsets.UTF_8);
+        System.out.println(sender +" : "+chatting);
+    }
+
+    void broadcastInvite(ByteBuffer leftover)
+    {
+        int roomNum = leftover.getInt();
+        byte[] inviteeReceive = new byte[16];
+        leftover.get(inviteeReceive,0,16);
+        String invitee = new String(removeZero(inviteeReceive), StandardCharsets.UTF_8);
+        List<String> inviters = new Vector<>();
+        while(leftover.position() <leftover.limit())
+        {
+            byte[] inviterReceive = new byte[16];
+            leftover.get(inviterReceive,0,16);
+            String s = new String(removeZero(inviterReceive), StandardCharsets.UTF_8);
+            inviters.add(s);
+        }
+        String inviterToString = "";
+        for(String s : inviters)
+        {
+            inviterToString += " "+ s;
+        }
+
+        logr.info(invitee + " has invited "+ inviterToString+" to " +roomNum + " room");
+        curRoom = roomNum;
+        roomList.add(curRoom);
+    }
+
+
 
     int availableReqId(int reqNum)
     {
