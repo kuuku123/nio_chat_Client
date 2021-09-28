@@ -12,6 +12,7 @@ import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
 import java.nio.channels.NotYetConnectedException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
 import java.util.concurrent.Executors;
@@ -24,6 +25,7 @@ public class ClientExample
 {
     private final static Logger logr = Logger.getGlobal();
     private Object for_startClient = new Object();
+    private Object for_broadcastInvite = new Object();
     AsynchronousChannelGroup channelGroup;
     AsynchronousSocketChannel socketChannel;
     ByteBuffer readBuffer = ByteBuffer.allocate(1000);
@@ -152,14 +154,16 @@ public class ClientExample
                     int userCount = s.length;
                     ByteBuffer inviteBuffer = ByteBuffer.allocate(userCount * 16 + 4);
                     inviteBuffer.putInt(userCount);
-                    for (int i = 0; i<userCount; i++)
+                    int i = 0;
+                    for (i = 0; i<userCount; i++)
                     {
                         inviteBuffer.position(i*16+4);
                         inviteBuffer.put(s[i].getBytes(StandardCharsets.UTF_8));
                     }
-                    int i = availableReqId(9);
+                    inviteBuffer.position(i*16+4);
+                    int a = availableReqId(9);
                     inviteBuffer.flip();
-                    send(i,9,userId,roomNum,inviteBuffer);
+                    send(a,9,userId,roomNum,inviteBuffer);
                 }
             }
             else if(command.startsWith("enterroom", 1))
@@ -172,7 +176,16 @@ public class ClientExample
             }
             else if(command.startsWith("showroom", 1))
             {
-
+                if(loggedIn == false)
+                {
+                    logr.info("login first");
+                    return;
+                }
+                else if (loggedIn == true)
+                {
+                    int i = availableReqId(11);
+                    send(i,11,userId,-1,ByteBuffer.allocate(0));
+                }
             }
             else
             {
@@ -317,19 +330,22 @@ public class ClientExample
 
 
 
-    void processBroadcast(int broadcastNum, String data, ByteBuffer leftover)
+    void processBroadcast(int broadcastNum, ByteBuffer leftover)
     {
         BroadcastEnum b = BroadcastEnum.fromInteger(broadcastNum);
 
         switch (b)
         {
             case invite_user_to_room:
-                broadcastInvite(data,leftover);
+                synchronized (for_broadcastInvite)
+                {
+                    broadcastInvite(leftover);
+                }
                 return;
             case quit_room:
                 return;
             case text:
-                broadcastText(data,leftover);
+                broadcastText(leftover);
                 return;
             case file_upload:
                 return;
@@ -338,9 +354,15 @@ public class ClientExample
         }
     }
 
-    void broadcastText(String sender, ByteBuffer leftover)
+    void broadcastText(ByteBuffer leftover)
     {
+        leftover.position(12);
+        byte[] senderReceive = new byte[16];
+        leftover.get(senderReceive,0,16);
+        String sender = new String(removeZero(senderReceive), StandardCharsets.UTF_8);
+
         byte[] chat = new byte[1000];
+        leftover.position(28);
         int position = leftover.position();
         int limit = leftover.limit();
         leftover.get(chat,0,limit-position);
@@ -348,11 +370,29 @@ public class ClientExample
         System.out.println(sender +" : "+chatting);
     }
 
-    void broadcastInvite(String sender, ByteBuffer leftover)
+    void broadcastInvite(ByteBuffer leftover)
     {
-        int roomNum = leftover.getInt(24);
-        System.out.println(roomNum + "방번호임");
+        int roomNum = leftover.getInt();
+        byte[] inviteeReceive = new byte[16];
+        leftover.get(inviteeReceive,0,16);
+        String invitee = new String(removeZero(inviteeReceive), StandardCharsets.UTF_8);
+        List<String> inviters = new Vector<>();
+        while(leftover.position() <leftover.limit())
+        {
+            byte[] inviterReceive = new byte[16];
+            leftover.get(inviterReceive,0,16);
+            String s = new String(removeZero(inviterReceive), StandardCharsets.UTF_8);
+            inviters.add(s);
+        }
+        String inviterToString = "";
+        for(String s : inviters)
+        {
+            inviterToString += " "+ s;
+        }
+
+        logr.info(invitee + " has invited "+ inviterToString+" to " +roomNum + " room");
         curRoom = roomNum;
+        roomList.add(curRoom);
     }
 
 
@@ -441,11 +481,8 @@ public class ClientExample
                         attachment.get(broadcastNumReceive);
                         int broadcastNum = byteToInt(broadcastNumReceive);
                         attachment.position(8);
-                        attachment.get(userIdReceive);
-                        String info = new String(removeZero(userIdReceive), StandardCharsets.UTF_8);
-                        attachment.position(24);
 
-                        processBroadcast(broadcastNum,info,attachment);
+                        processBroadcast(broadcastNum,attachment);
                     }
                     else
                     {
