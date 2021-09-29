@@ -80,7 +80,10 @@ public class ClientExample
                 userId = name;
                 int reqId = availableReqId(0);
                 send(reqId,0,name,-1,ByteBuffer.allocate(0));
-
+            }
+            if (loggedIn == false)
+            {
+                logr.info("login first");
             }
             else if(command.startsWith("logout", 1))
             {
@@ -88,10 +91,6 @@ public class ClientExample
                 {
                     int reqId = availableReqId(1);
                     send(reqId,1,userId,-1,ByteBuffer.allocate(0));
-                }
-                else if (loggedIn == false)
-                {
-                    logr.info("로그인 아직 안함, 로그인먼저");
                 }
             }
             else if(command.startsWith("uploadfile", 1))
@@ -113,12 +112,7 @@ public class ClientExample
             else if(command.startsWith("createroom", 1))
             {
                 int reqId = availableReqId(7);
-                if(loggedIn == false)
-                {
-                    logr.info("login first");
-                    return;
-                }
-                else if(loggedIn == true)
+                if(loggedIn == true)
                 {
                     String roomName = command.substring(12);
                     ByteBuffer roomNameBuf = ByteBuffer.allocate(16);
@@ -134,12 +128,7 @@ public class ClientExample
             }
             else if(command.startsWith("inviteuser", 1))
             {
-                if(loggedIn == false)
-                {
-                    logr.info("login first");
-                    return;
-                }
-                else if(loggedIn == true && curRoom == null)
+                if(loggedIn == true && curRoom == null)
                 {
                     logr.info("make YOUR chatroom first ");
                     return;
@@ -147,9 +136,14 @@ public class ClientExample
                 else if(loggedIn == true && curRoom != null)
                 {
                     int length = command.length();
-                    String userList = command.substring(12,length-1);
-                    int roomNum = Integer.parseInt( command.substring(length-1));
-                    String[] s = userList.split(" ");
+                    String query = command.substring(12);
+                    String[] s1 = query.split(" ");
+                    String[] s = new String[s1.length-1];
+                    for(int i = 0; i<s1.length-1; i++)
+                    {
+                        s[i] = s1[i];
+                    }
+                    int roomNum = Integer.parseInt(s1[s1.length-1]);
                     int userCount = s.length;
                     ByteBuffer inviteBuffer = ByteBuffer.allocate(userCount * 16 + 4);
                     inviteBuffer.putInt(userCount);
@@ -165,26 +159,32 @@ public class ClientExample
                     send(a,9,userId,roomNum,inviteBuffer);
                 }
             }
-            else if(command.startsWith("enterroom", 1))
-            {
-
-            }
             else if(command.startsWith("showuser", 1))
             {
 
             }
             else if(command.startsWith("showroom", 1))
             {
-                if(loggedIn == false)
-                {
-                    logr.info("login first");
-                    return;
-                }
-                else if (loggedIn == true)
+                if (loggedIn == true)
                 {
                     int i = availableReqId(11);
                     send(i,11,userId,-1,ByteBuffer.allocate(0));
                 }
+            }
+            else if(command.startsWith("enterroom", 1))
+            {
+                if(loggedIn == true)
+                {
+                    int i = availableReqId(12);
+                    int roomNum = Integer.parseInt(command.substring(11));
+                    send(i,12,userId,roomNum,ByteBuffer.allocate(0));
+                }
+
+            }
+            else if(command.startsWith("enrollfile", 1))
+            {
+
+
             }
             else
             {
@@ -403,6 +403,8 @@ public class ClientExample
                 roomListProcess(op,reqId,serverResult,data);
                 return;
             case enterRoom:
+                enterRoomProcess(op,reqId,serverResult,data);
+                return;
             case enrollFile:
         }
     }
@@ -465,10 +467,7 @@ public class ClientExample
             roomList.add(room);
             logr.info("[requestId: "+reqId+" "+" roomNum: "+roomNum+" "+op+ " success]");
         }
-        else
-        {
-            logr.severe("requestId: "+reqId+" : " +op +" failed");
-        }
+        else logr.severe("requestId: "+reqId+" : " +op +" failed");
         reqIdList.set(reqId,-1);
     }
 
@@ -478,10 +477,7 @@ public class ClientExample
         {
             logr.info("[requestId: "+reqId+" "+op+ " success]");
         }
-        else
-        {
-            logr.severe("requestId: "+reqId+" : " +op +" failed");
-        }
+        else logr.severe("requestId: "+reqId+" : " +op +" failed");
         reqIdList.set(reqId,-1);
     }
 
@@ -503,8 +499,35 @@ public class ClientExample
                 roomList.add(room);
                 System.out.println("Room Info : roomNum="+roomNum + ", roomName="+roomName + ", userSize="+userSize+", notRead="+notReadSize);
             }
-            reqIdList.set(reqId,-1);
         }
+        else logr.severe("requestId: "+reqId+" : " +op +" failed");
+        reqIdList.set(reqId,-1);
+
+    }
+
+    void enterRoomProcess(OperationEnum op, int reqId, int serverResult, ByteBuffer data)
+    {
+        if(serverResult == 0)
+        {
+            logr.info("[requestId: "+reqId+" "+op+ " success]");
+            int notReadCount = data.getInt();
+            for(int i = 0; i<notReadCount; i++)
+            {
+                byte[] senderReceive = new byte[16];
+                data.get(senderReceive,0,16);
+                String sender = new String(removeZero(senderReceive), StandardCharsets.UTF_8);
+                int textId = data.getInt();
+                int notRoomRead = data.getInt();
+                int textSize = data.getInt();
+                byte[] textReceive = new byte[textSize];
+                data.get(textReceive,0,textSize);
+                String text = new String(removeZero(textReceive), StandardCharsets.UTF_8);
+                Text text1 = new Text(textId, sender, text, notRoomRead);
+                curRoom.textList.add(text1);
+            }
+        }
+        else logr.severe("requestId: "+reqId+" : " +op +" failed");
+        reqIdList.set(reqId,-1);
     }
 
 
@@ -529,6 +552,9 @@ public class ClientExample
                 return;
             case file_remove:
                 return;
+            case enter_room:
+                broadcastEnter(leftover);
+                return;
         }
     }
 
@@ -540,8 +566,9 @@ public class ClientExample
         String sender = new String(removeZero(senderReceive), StandardCharsets.UTF_8);
         int textId = leftover.getInt();
         int notRead = leftover.getInt();
+        int textLength = leftover.getInt();
         byte[] chat = new byte[1000];
-        leftover.position(36);
+        leftover.position(40);
         int position = leftover.position();
         int limit = leftover.limit();
         leftover.get(chat,0,limit-position);
@@ -577,6 +604,25 @@ public class ClientExample
         roomList.add(curRoom);
     }
 
+    void broadcastEnter(ByteBuffer leftover)
+    {
+        int roomNum = leftover.getInt();
+        byte[] senderReceive = new byte[16];
+        leftover.get(senderReceive,0,16);
+        String enterer = new String(removeZero(senderReceive), StandardCharsets.UTF_8);
+        int start = leftover.getInt();
+        int end = leftover.getInt();
+        if (start != -1)
+        {
+                for(int i = start; i<=end; i++)
+                {
+                    Text text = curRoom.textList.get(i);
+                    text.notReadNum--;
+                    if(enterer.equals(userId)) System.out.println(text.sender +" : "+text.text +" "+text.notReadNum);
+                }
+        }
+        logr.info("["+enterer+" 가 재입장 했습니다]");
+    }
 
 
     int availableReqId(int reqNum)

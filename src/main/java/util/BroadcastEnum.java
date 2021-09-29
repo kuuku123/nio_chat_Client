@@ -2,7 +2,7 @@ package util;
 
 public enum BroadcastEnum
 {
-    invite_user_to_room, quit_room , text, file_upload, file_remove;
+    invite_user_to_room, quit_room , text, file_upload, file_remove, enter_room;
 
     public static BroadcastEnum fromInteger (int x)
     {
@@ -18,6 +18,8 @@ public enum BroadcastEnum
                 return file_upload;
             case 4:
                 return file_remove;
+            case 5:
+                return enter_room;
         }
         return null;
     }
