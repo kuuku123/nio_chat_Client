@@ -12,7 +12,6 @@ import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
 import java.nio.channels.NotYetConnectedException;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
 import java.util.concurrent.Executors;
@@ -34,8 +33,8 @@ public class ClientExample
     boolean connection_start_fail = false;
     String userId = "not set";
     List<Integer> reqIdList = new Vector<>((int) Math.pow(256,3));
-    List<Integer> roomList = new Vector<>();
-    int curRoom = -1;
+    List<Room> roomList = new Vector<>();
+    Room curRoom = null;
 
 
     private static void setupLogger()
@@ -140,12 +139,12 @@ public class ClientExample
                     logr.info("login first");
                     return;
                 }
-                else if(loggedIn == true && curRoom == -1)
+                else if(loggedIn == true && curRoom == null)
                 {
                     logr.info("make YOUR chatroom first ");
                     return;
                 }
-                else if(loggedIn == true && curRoom != -1)
+                else if(loggedIn == true && curRoom != null)
                 {
                     int length = command.length();
                     String userList = command.substring(12,length-1);
@@ -200,7 +199,7 @@ public class ClientExample
                 logr.info("login first");
                 return;
             }
-            else if(loggedIn == true && curRoom == -1)
+            else if(loggedIn == true && curRoom == null)
             {
                 logr.info("make YOUR chatroom first ");
                 return;
@@ -335,13 +334,13 @@ public class ClientExample
 
     void send(int reqId,int reqNum , String userId,int roomNum,ByteBuffer inputData)
     {
-        writeBuffer.put(intTobyte(reqId));
+        writeBuffer.put(intToByte(reqId));
         writeBuffer.position(4);
-        writeBuffer.put(intTobyte(reqNum));
+        writeBuffer.put(intToByte(reqNum));
         writeBuffer.position(8);
         writeBuffer.put(userId.getBytes(StandardCharsets.UTF_8));
         writeBuffer.position(24);
-        writeBuffer.put(intTobyte(roomNum));
+        writeBuffer.put(intToByte(roomNum));
         writeBuffer.position(28);
         writeBuffer.put(inputData);
         writeBuffer.flip();
@@ -398,7 +397,13 @@ public class ClientExample
             case quitRoom:
             case inviteRoom:
                 inviteRoomProcess(op,reqId,serverResult,data);
+                return;
             case roomUserList:
+            case roomList:
+                roomListProcess(op,reqId,serverResult,data);
+                return;
+            case enterRoom:
+            case enrollFile:
         }
     }
 
@@ -407,13 +412,15 @@ public class ClientExample
         if (serverResult == 0)
         {
             loggedIn = true;
-            if (data.limit() > 8)
-            {
-                int lastRoomNum = data.getInt(8);
-                if (lastRoomNum != -2) curRoom = lastRoomNum;
-            }
-            logr.info(op.toString()+" 성공함");
-            logr.info("[requestId: "+reqId+" "+op+ "success]");
+//            if (data.limit() > 8)
+//            {
+//                int lastRoomNum = data.getInt(8);
+//                if (lastRoomNum != -2)
+//                {
+//                    curRoom = lastRoomNum;
+//                }
+//            }
+            logr.info("[requestId: "+reqId+" "+op+ " success]");
         }
         else if (serverResult == 1)
         {
@@ -453,8 +460,9 @@ public class ClientExample
         if (serverResult == 0)
         {
             int roomNum = data.getInt(8);
-            curRoom = roomNum;
-            roomList.add(roomNum);
+            Room room = new Room(roomNum);
+            curRoom = room;
+            roomList.add(room);
             logr.info("[requestId: "+reqId+" "+" roomNum: "+roomNum+" "+op+ " success]");
         }
         else
@@ -477,7 +485,27 @@ public class ClientExample
         reqIdList.set(reqId,-1);
     }
 
-
+    void roomListProcess(OperationEnum op, int reqId, int serverResult, ByteBuffer data)
+    {
+        if (serverResult == 0)
+        {
+            logr.info("[requestId: "+reqId+" "+op+ " success]");
+            int roomListSize = data.getInt();
+            for(int i = 0; i<roomListSize; i++)
+            {
+                int roomNum = data.getInt();
+                byte[] roomNameReceive = new byte[16];
+                data.get(roomNameReceive,0,16);
+                String roomName = new String(removeZero(roomNameReceive), StandardCharsets.UTF_8);
+                int userSize = data.getInt();
+                int notReadSize = data.getInt();
+                Room room = new Room(roomNum);
+                roomList.add(room);
+                System.out.println("Room Info : roomNum="+roomNum + ", roomName="+roomName + ", userSize="+userSize+", notRead="+notReadSize);
+            }
+            reqIdList.set(reqId,-1);
+        }
+    }
 
 
     void processBroadcast(int broadcastNum, ByteBuffer leftover)
@@ -510,14 +538,17 @@ public class ClientExample
         byte[] senderReceive = new byte[16];
         leftover.get(senderReceive,0,16);
         String sender = new String(removeZero(senderReceive), StandardCharsets.UTF_8);
-
+        int textId = leftover.getInt();
+        int notRead = leftover.getInt();
         byte[] chat = new byte[1000];
-        leftover.position(28);
+        leftover.position(36);
         int position = leftover.position();
         int limit = leftover.limit();
         leftover.get(chat,0,limit-position);
         String chatting = new String(removeZero(chat), StandardCharsets.UTF_8);
-        System.out.println(sender +" : "+chatting);
+        Text text = new Text(textId, sender, chatting,notRead);
+        curRoom.textList.add(text);
+        System.out.println(sender +" : "+chatting +" "+notRead);
     }
 
     void broadcastInvite(ByteBuffer leftover)
@@ -541,7 +572,8 @@ public class ClientExample
         }
 
         logr.info(invitee + " has invited "+ inviterToString+" to " +roomNum + " room");
-        curRoom = roomNum;
+        Room room = new Room(roomNum);
+        curRoom = room;
         roomList.add(curRoom);
     }
 
@@ -571,7 +603,7 @@ public class ClientExample
         }
     }
 
-    public byte[] intTobyte(int value) {
+    public byte[] intToByte(int value) {
         byte[] bytes=new byte[4];
         bytes[0]=(byte)((value&0xFF000000)>>24);
         bytes[1]=(byte)((value&0x00FF0000)>>16);
@@ -610,6 +642,35 @@ public class ClientExample
         }
         return n;
     }
+
+    class Room
+    {
+        int roomNum;
+        List<Text> textList = new Vector<>();
+
+        public Room(int roomNum)
+        {
+            this.roomNum = roomNum;
+        }
+    }
+
+
+    class Text
+    {
+        int textId;
+        String sender;
+        String text;
+        int notReadNum;
+
+        public Text(int textId, String sender, String text, int notReadNum)
+        {
+            this.textId = textId;
+            this.sender = sender;
+            this.text = text;
+            this.notReadNum = notReadNum;
+        }
+    }
+
 
     public static void main(String[] args)
     {
