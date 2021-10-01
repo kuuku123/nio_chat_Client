@@ -581,6 +581,7 @@ public class ClientService
         byte[] inviteeReceive = new byte[16];
         leftover.get(inviteeReceive, 0, 16);
         String invitee = new String(removeZero(inviteeReceive), StandardCharsets.UTF_8);
+        int total_inv_count = leftover.getInt();
         List<String> inviters = new Vector<>();
         while (leftover.position() < leftover.limit())
         {
