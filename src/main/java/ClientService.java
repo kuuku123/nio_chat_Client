@@ -407,14 +407,6 @@ public class ClientService
         if (serverResult == 0)
         {
             loggedIn = true;
-//            if (data.limit() > 8)
-//            {
-//                int lastRoomNum = data.getInt(8);
-//                if (lastRoomNum != -2)
-//                {
-//                    curRoom = lastRoomNum;
-//                }
-//            }
             logr.info("[requestId: " + reqId + " " + op + " success]");
             read_text_restore();
             logr.info("[room, text info restored]");
