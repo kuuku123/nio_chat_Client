@@ -3,7 +3,6 @@ import util.LogFormatter;
 import util.OperationEnum;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.InetSocketAddress;
@@ -25,7 +24,7 @@ import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
-public class ClientExample
+public class ClientService
 {
     private final static Logger logr = Logger.getGlobal();
     private Object for_startClient = new Object();
@@ -293,19 +292,19 @@ public class ClientExample
                     if (reqId == -1)
                     {
                         byte[] broadcastNumReceive = new byte[4];
-                        byte[] userIdReceive = new byte[16];
-                        byte[] leftover = new byte[1000];
                         attachment.get(broadcastNumReceive);
                         int broadcastNum = byteToInt(broadcastNumReceive);
                         attachment.position(8);
-
                         processBroadcast(broadcastNum, attachment);
                     } else
                     {
                         byte[] resultReceive = new byte[4];
+                        byte[] requestNumReceive = new byte[4];
+                        attachment.get(requestNumReceive);
+                        int requestNum = byteToInt(requestNumReceive);
                         attachment.get(resultReceive);
                         int serverResult = byteToInt(resultReceive);
-                        attachment.position(8);
+                        attachment.position(12);
 //                    System.out.println("willit work" + reqId+" "+ serverResult+" "+leftover);
                         processOutput(reqId, serverResult, attachment);
                     }
@@ -454,7 +453,7 @@ public class ClientExample
     {
         if (serverResult == 0)
         {
-            int roomNum = data.getInt(8);
+            int roomNum = data.getInt();
             Room room = new Room(roomNum);
             curRoom = room;
             roomList.add(room);
@@ -571,8 +570,8 @@ public class ClientExample
         Text text = new Text(textId, sender, chatting, notRoomRead);
         String toAdd = textId + " " + sender + " " + textSize + " " + chatting + " " + notRoomRead + "\n";
         curRoom.textList.add(text);
-        if(userId.equals(sender)) return;
         save_text(toAdd);
+        if(userId.equals(sender)) return;
         System.out.println(sender + " : " + chatting + " " + notRoomRead);
     }
 
@@ -598,9 +597,16 @@ public class ClientExample
         }
 
         logr.info(invitee + " has invited " + inviterToString + " to " + roomNum + " room");
-        Room room = new Room(roomNum);
-        curRoom = room;
-        roomList.add(curRoom);
+        for(int i = 0; i<inviters.size(); i++)
+        {
+            if(inviters.get(i).equals(userId))
+            {
+                Room room = new Room(roomNum);
+                curRoom = room;
+                roomList.add(curRoom);
+                break;
+            }
+        }
     }
 
     void broadcastEnter(ByteBuffer leftover)
@@ -621,10 +627,17 @@ public class ClientExample
         int end = leftover.getInt();
         if (start != -1)
         {
-            for (int i = start; i <= end; i++)
+            for (int i = 0; i < curRoom.textList.size(); i++)
             {
                 Text text = curRoom.textList.get(i);
-                text.notReadNum--;
+                for(int j = start; j<=end; j++)
+                {
+                    if(text.textId == j)
+                    {
+                        text.notReadNum--;
+                        break;
+                    }
+                }
             }
         }
         logr.info("[" + enterer + " 가 재입장 했습니다]");
@@ -712,7 +725,7 @@ public class ClientExample
                         int roomNum = Integer.parseInt(roomsNum[i]);
                         Room room = new Room(roomNum);
                         roomList.add(room);
-                        Path path = Paths.get("./src/main/resources/text_save/" + roomNum + ".txt");
+                        Path path = Paths.get("./src/main/resources/text_save/" + roomNum +"_"+userId+ ".txt");
                         if (Files.exists(path))
                         {
                             try
@@ -723,10 +736,16 @@ public class ClientExample
                                     int textId = Integer.parseInt(s1[0]);
                                     String sender = s1[1];
                                     int text_length = Integer.parseInt(s1[2]);
-                                    String text = s1[3];
-                                    int notRoomRead = Integer.parseInt(s1[4]);
+                                    String text = "";
+                                    for(int j = 3; j<=s1.length-2; j++)
+                                    {
+                                        text += s1[j];
+                                        if(j == s1.length-2) continue;
+                                        text += " ";
+                                    }
+                                    int notRoomRead = Integer.parseInt(s1[s1.length-1]);
                                     Text text1 = new Text(textId, sender, text, notRoomRead);
-
+                                    room.textList.add(text1);
                                 });
                             } catch (IOException e)
                             {
@@ -745,7 +764,7 @@ public class ClientExample
 
     private void save_text(String toAdd)
     {
-        Path path = Paths.get("./src/main/resources/text_save/" + curRoom.roomNum + ".txt");
+        Path path = Paths.get("./src/main/resources/text_save/" + curRoom.roomNum +"_"+userId +".txt");
         try
         {
             Files.createDirectories(path.getParent());
@@ -799,7 +818,7 @@ public class ClientExample
 
     public static void main(String[] args)
     {
-        ClientExample clientExample = new ClientExample();
+        ClientService clientExample = new ClientService();
         setupLogger();
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
         try
