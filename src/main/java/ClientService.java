@@ -285,31 +285,12 @@ public class ClientService
                 try
                 {
                     attachment.flip();
-                    byte[] reqIdReceive = new byte[4];
-                    attachment.get(reqIdReceive);
-                    int reqId = byteToInt(reqIdReceive);
+                    int reqId = attachment.getInt();
                     attachment.position(4);
-                    if (reqId == -1)
-                    {
-                        byte[] broadcastNumReceive = new byte[4];
-                        attachment.get(broadcastNumReceive);
-                        int broadcastNum = byteToInt(broadcastNumReceive);
-                        attachment.position(8);
-                        processBroadcast(broadcastNum, attachment);
-                    } else
-                    {
-                        byte[] resultReceive = new byte[4];
-                        byte[] requestNumReceive = new byte[4];
-                        attachment.get(requestNumReceive);
-                        int requestNum = byteToInt(requestNumReceive);
-                        attachment.get(resultReceive);
-                        int serverResult = byteToInt(resultReceive);
-                        attachment.position(12);
-//                    System.out.println("willit work" + reqId+" "+ serverResult+" "+leftover);
-                        processOutput(reqId, serverResult, attachment);
-                    }
+                    if (reqId == -1) processBroadcast(attachment);
+                    else processOutput(reqId, attachment);
+
                     readBuffer = ByteBuffer.allocate(1000);
-                    readBuffer.clear();
                     socketChannel.read(readBuffer, readBuffer, this);
                 } catch (Exception e)
                 {
@@ -346,7 +327,6 @@ public class ClientService
                 OperationEnum op = OperationEnum.fromInteger(reqNum);
                 logr.info("[보내기 완료 requestId: " + reqId + " " + op.toString() + " request]");
                 writeBuffer = ByteBuffer.allocate(1000);
-                writeBuffer.clear();
             }
 
             @Override
@@ -359,8 +339,16 @@ public class ClientService
     }
 
 
-    void processOutput(int reqId, int serverResult, ByteBuffer data)
+    void processOutput(int reqId, ByteBuffer data)
     {
+
+        byte[] resultReceive = new byte[4];
+        byte[] requestNumReceive = new byte[4];
+        data.get(requestNumReceive);
+        int reqNum = byteToInt(requestNumReceive);
+        data.get(resultReceive);
+        int serverResult = byteToInt(resultReceive);
+        data.position(12);
         OperationEnum op = OperationEnum.fromInteger(reqIdList.get(reqId));
         switch (op)
         {
@@ -517,8 +505,13 @@ public class ClientService
     }
 
 
-    void processBroadcast(int broadcastNum, ByteBuffer leftover)
+    void processBroadcast(ByteBuffer leftover)
     {
+
+        byte[] broadcastNumReceive = new byte[4];
+        leftover.get(broadcastNumReceive);
+        int broadcastNum = byteToInt(broadcastNumReceive);
+        leftover.position(8);
         BroadcastEnum b = BroadcastEnum.fromInteger(broadcastNum);
 
         switch (b)
