@@ -1,3 +1,5 @@
+package client;
+
 import util.BroadcastEnum;
 import util.LogFormatter;
 import util.OperationEnum;
@@ -122,7 +124,16 @@ public class ClientService
 
             } else if (command.startsWith("exitroom", 1))
             {
-
+                if(loggedIn == true && curRoom == null)
+                {
+                    logr.info("you are not in the room");
+                    return;
+                }
+                else if(loggedIn == true && curRoom != null)
+                {
+                    int i = availableReqId(8);
+                    send(i,8,userId, curRoom.roomNum, ByteBuffer.allocate(0));
+                }
             } else if (command.startsWith("inviteuser", 1))
             {
                 if (loggedIn == true && curRoom == null)
@@ -502,7 +513,7 @@ public class ClientService
             }
         } else logr.severe("requestId: " + reqId + " : " + op + " failed");
         reqIdList.set(reqId, -1);
-    }
+}
 
 
     void processBroadcast(ByteBuffer leftover)
@@ -699,7 +710,7 @@ public class ClientService
 
     private void read_text_restore()
     {
-        Path roomPath = Paths.get("./src/main/resources/room_save.txt");
+        Path roomPath = Paths.get("./room_save.txt");
         if (Files.exists(roomPath))
         {
             try
@@ -711,7 +722,7 @@ public class ClientService
                         int roomNum = Integer.parseInt(roomsNum[i]);
                         Room room = new Room(roomNum);
                         roomList.add(room);
-                        Path path = Paths.get("./src/main/resources/text_save/" + roomNum +"_"+userId+ ".txt");
+                        Path path = Paths.get("./text_save/" + roomNum +"_"+userId+ ".txt");
                         if (Files.exists(path))
                         {
                             try
@@ -750,7 +761,7 @@ public class ClientService
 
     private void save_text(String toAdd)
     {
-        Path path = Paths.get("./src/main/resources/text_save/" + curRoom.roomNum +"_"+userId +".txt");
+        Path path = Paths.get("./text_save/" + curRoom.roomNum +"_"+userId +".txt");
         try
         {
             Files.createDirectories(path.getParent());
@@ -764,7 +775,7 @@ public class ClientService
     private void add_roomList(int roomNum)
     {
         String s = String.valueOf(roomNum) + " ";
-        Path path = Paths.get("./src/main/resources/room_save.txt");
+        Path path = Paths.get("./room_save.txt");
         try
         {
             Files.write(path,s.getBytes(StandardCharsets.UTF_8),StandardOpenOption.CREATE,StandardOpenOption.APPEND);
