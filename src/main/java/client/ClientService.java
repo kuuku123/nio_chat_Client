@@ -122,7 +122,8 @@ public class ClientService
                     send(reqId, 7, userId, -1, roomNameBuf);
                 }
 
-            } else if (command.startsWith("exitroom", 1))
+            }
+            else if (command.startsWith("quitroom", 1))
             {
                 if(loggedIn == true && curRoom == null)
                 {
@@ -133,6 +134,7 @@ public class ClientService
                 {
                     int i = availableReqId(8);
                     send(i,8,userId, curRoom.roomNum, ByteBuffer.allocate(0));
+                    return;
                 }
             } else if (command.startsWith("inviteuser", 1))
             {
@@ -387,6 +389,8 @@ public class ClientService
                 createRoomProcess(op, reqId, serverResult, data);
                 return;
             case quitRoom:
+                quitRoomProcess(op,reqId,serverResult,data);
+                return;
             case inviteRoom:
                 inviteRoomProcess(op, reqId, serverResult, data);
                 return;
@@ -400,6 +404,7 @@ public class ClientService
             case enrollFile:
         }
     }
+
 
     void loginProcess(OperationEnum op, int reqId, int serverResult, ByteBuffer data)
     {
@@ -515,6 +520,18 @@ public class ClientService
         reqIdList.set(reqId, -1);
 }
 
+    void quitRoomProcess(OperationEnum op, int reqId, int serverResult, ByteBuffer data)
+    {
+        if (serverResult == 0)
+        {
+            logr.info("[requestId: " + reqId + " " + op + " success]");
+            roomList.remove(curRoom);
+            curRoom = null;
+
+        }
+        else logr.severe("requestId: " + reqId + " : " + op + " failed");
+        reqIdList.set(reqId,-1);
+    }
 
     void processBroadcast(ByteBuffer leftover)
     {
@@ -534,6 +551,7 @@ public class ClientService
                 }
                 return;
             case quit_room:
+                broadcastQuitRoom(leftover);
                 return;
             case text:
                 broadcastText(leftover);
@@ -638,6 +656,16 @@ public class ClientService
             }
         }
         logr.info("[" + enterer + " 가 재입장 했습니다]");
+    }
+
+    void broadcastQuitRoom(ByteBuffer leftover)
+    {
+        int roomNum = leftover.getInt();
+        byte[] senderReceive = new byte[16];
+        leftover.get(senderReceive, 0, 16);
+        String sender = new String(removeZero(senderReceive), StandardCharsets.UTF_8);
+        logr.info("[" + sender +" has quit room " +roomNum+ " ]");
+
     }
 
 
