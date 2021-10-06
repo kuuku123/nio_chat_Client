@@ -40,6 +40,7 @@ public class ClientService
     List<Integer> reqIdList = new Vector<>((int) Math.pow(256, 3));
     List<Room> roomList = new Vector<>();
     Room curRoom = null;
+    boolean second_login = false;
 
 
     private static void setupLogger()
@@ -65,25 +66,30 @@ public class ClientService
                     logr.severe("already logged in");
                     return;
                 }
-                synchronized (for_startClient)
+                if(!second_login)
                 {
-                    try
+                    synchronized (for_startClient)
                     {
-                        startClient();
-                        for_startClient.wait();
-                    } catch (InterruptedException e)
-                    {
-                        e.printStackTrace();
+                        try
+                        {
+                            startClient();
+                            for_startClient.wait();
+                        } catch (InterruptedException e)
+                        {
+                            e.printStackTrace();
+                        }
                     }
-                }
-                if (connection_start_fail)
-                {
-                    logr.info("[서버가 준비 안됨 기다려야함]");
-                    connection_start_fail = false;
-                    return;
+                    if (connection_start_fail)
+                    {
+                        logr.info("[서버가 준비 안됨 기다려야함]");
+                        connection_start_fail = false;
+                        return;
+                    }
+
                 }
                 String name = command.substring(7);
                 userId = name;
+                read_text_restore();
                 int reqId = availableReqId(0);
                 send(reqId, 0, name, -1, ByteBuffer.allocate(0));
             }
@@ -197,7 +203,22 @@ public class ClientService
             {
 
 
-            } else
+            }
+            else if(command.startsWith("exitroom",1))
+            {
+                if(loggedIn == true && curRoom == null)
+                {
+                    logr.info("you are not in the room");
+                    return;
+                }
+                else if(loggedIn == true && curRoom != null)
+                {
+                    int i = availableReqId(8);
+                    send(i,8,userId, curRoom.roomNum, ByteBuffer.allocate(0));
+                    return;
+                }
+            }
+            else
             {
                 logr.info("no such command");
                 return;
@@ -402,6 +423,12 @@ public class ClientService
                 enterRoomProcess(op, reqId, serverResult, data);
                 return;
             case enrollFile:
+                return;
+            case fileInfo:
+                return;
+            case exitRoom:
+                exitRoomProcess(op,reqId,serverResult,data);
+                return;
         }
     }
 
@@ -412,12 +439,12 @@ public class ClientService
         {
             loggedIn = true;
             logr.info("[requestId: " + reqId + " " + op + " success]");
-            read_text_restore();
             logr.info("[room, text info restored]");
         } else if (serverResult == 1)
         {
             logr.severe("requestId: " + reqId + " : " + op + " failed");
-        } else if (serverResult == 4)
+        }
+        else if (serverResult == 4)
         {
             logr.info("requestId: " + reqId + " : " + " 중복임으로 다른 아이디입력하세요");
         }
@@ -428,16 +455,11 @@ public class ClientService
     {
         if (serverResult == 0)
         {
-            try
-            {
-                socketChannel.close();
-                userId = "not set";
-                loggedIn = false;
-                logr.info("[서버와 연결종료]");
-            } catch (IOException e)
-            {
-                e.printStackTrace();
-            }
+            userId = "not set";
+            loggedIn = false;
+            second_login = true;
+            curRoom = null;
+            logr.info("[logout success]");
         } else if (serverResult == 1)
         {
             logr.info("logout failed");
@@ -453,6 +475,7 @@ public class ClientService
             Room room = new Room(roomNum);
             curRoom = room;
             roomList.add(room);
+            add_roomList(roomNum);
             logr.info("[requestId: " + reqId + " " + " roomNum: " + roomNum + " " + op + " success]");
         } else logr.severe("requestId: " + reqId + " : " + op + " failed");
         reqIdList.set(reqId, -1);
@@ -481,9 +504,6 @@ public class ClientService
                 String roomName = new String(removeZero(roomNameReceive), StandardCharsets.UTF_8);
                 int userSize = data.getInt();
                 int notReadSize = data.getInt();
-                Room room = new Room(roomNum);
-                add_roomList(room.roomNum);
-                roomList.add(room);
                 System.out.println("Room Info : roomNum=" + roomNum + ", roomName=" + roomName + ", userSize=" + userSize + ", notRead=" + notReadSize);
             }
         } else logr.severe("requestId: " + reqId + " : " + op + " failed");
@@ -496,32 +516,32 @@ public class ClientService
         if (serverResult == 0)
         {
             logr.info("[requestId: " + reqId + " " + op + " success]");
-            int notReadCount = data.getInt();
-            for (int i = 0; i < notReadCount; i++)
-            {
-                byte[] senderReceive = new byte[16];
-                data.get(senderReceive, 0, 16);
-                String sender = new String(removeZero(senderReceive), StandardCharsets.UTF_8);
+//            int notReadCount = data.getInt();
+//            for (int i = 0; i < notReadCount; i++)
+//            {
+//                byte[] senderReceive = new byte[16];
+//                data.get(senderReceive, 0, 16);
+//                String sender = new String(removeZero(senderReceive), StandardCharsets.UTF_8);
+//
+//                byte[] timeReceive = new byte[12];
+//                data.get(timeReceive,0,12);
+//                String time = new String(removeZero(timeReceive), StandardCharsets.UTF_8);
+//                String usefulTime = time.substring(6, 8) + ":" + time.substring(8, 10) + ":" + time.substring(10, 12);
+//
+//                int textId = data.getInt();
+//                int notRoomRead = data.getInt();
+//                int textSize = data.getInt();
+//                byte[] textReceive = new byte[textSize];
+//                data.get(textReceive, 0, textSize);
+//                String text = new String(removeZero(textReceive), StandardCharsets.UTF_8);
+//                Text text1 = new Text(textId, sender, text, notRoomRead,usefulTime);
+//                String toAdd = textId + " " + sender + " " + textSize + " " + text + " " + notRoomRead + "\n";
 
-                byte[] timeReceive = new byte[12];
-                data.get(timeReceive,0,12);
-                String time = new String(removeZero(timeReceive), StandardCharsets.UTF_8);
-                String usefulTime = time.substring(6, 8) + ":" + time.substring(8, 10) + ":" + time.substring(10, 12);
+//                save_text(toAdd,roomNum);
 
-                int textId = data.getInt();
-                int notRoomRead = data.getInt();
-                int textSize = data.getInt();
-                byte[] textReceive = new byte[textSize];
-                data.get(textReceive, 0, textSize);
-                String text = new String(removeZero(textReceive), StandardCharsets.UTF_8);
-                Text text1 = new Text(textId, sender, text, notRoomRead);
-                String toAdd = textId + " " + sender + " " + textSize + " " + text + " " + notRoomRead + "\n";
-
-                save_text(toAdd);
-
-                System.out.println(sender + " : " + text + " " + notRoomRead + " "+ usefulTime);
-                curRoom.textList.add(text1);
-            }
+//                System.out.println(sender + " : " + text + " " + notRoomRead + " "+ usefulTime);
+//                curRoom.textList.add(text1);
+//            }
         } else logr.severe("requestId: " + reqId + " : " + op + " failed");
         reqIdList.set(reqId, -1);
 }
@@ -532,6 +552,18 @@ public class ClientService
         {
             logr.info("[requestId: " + reqId + " " + op + " success]");
             roomList.remove(curRoom);
+            curRoom = null;
+
+        }
+        else logr.severe("requestId: " + reqId + " : " + op + " failed");
+        reqIdList.set(reqId,-1);
+    }
+
+    void exitRoomProcess(OperationEnum op, int reqId, int serverResult, ByteBuffer data)
+    {
+        if (serverResult == 0)
+        {
+            logr.info("[requestId: " + reqId + " " + op + " success]");
             curRoom = null;
 
         }
@@ -574,6 +606,12 @@ public class ClientService
 
     void broadcastText(ByteBuffer leftover)
     {
+        int roomNum = leftover.getInt();
+        Room sendRoom = null;
+        for (Room room : roomList)
+        {
+            if (room.roomNum == roomNum) sendRoom = room; break;
+        }
         leftover.position(12);
         byte[] senderReceive = new byte[16];
         leftover.get(senderReceive, 0, 16);
@@ -593,17 +631,23 @@ public class ClientService
         int limit = leftover.limit();
         leftover.get(chat, 0, limit - position);
         String chatting = new String(removeZero(chat), StandardCharsets.UTF_8);
-        Text text = new Text(textId, sender, chatting, notRoomRead);
-        String toAdd = textId + " " + sender + " " + textSize + " " + chatting + " " + notRoomRead + "\n";
-        curRoom.textList.add(text);
-        save_text(toAdd);
+        Text text = new Text(textId, sender, chatting, notRoomRead,usefulTime);
+
+        String toAdd = textId + " " + sender + " " + textSize + " " + chatting + " " + notRoomRead + " " +usefulTime+"\n";
+        sendRoom.textList.add(text);
+        save_text(toAdd,roomNum);
         if(userId.equals(sender)) return;
+        if(curRoom == null) return;
         System.out.println(sender + " : " + chatting + " " + notRoomRead + " " + usefulTime);
     }
 
     void broadcastInvite(ByteBuffer leftover)
     {
         int roomNum = leftover.getInt();
+        Room room = new Room(roomNum);
+        curRoom = room;
+        add_roomList(room.roomNum);
+        roomList.add(room);
         byte[] inviteeReceive = new byte[16];
         leftover.get(inviteeReceive, 0, 16);
         String invitee = new String(removeZero(inviteeReceive), StandardCharsets.UTF_8);
@@ -628,16 +672,6 @@ public class ClientService
         }
 
         logr.info(invitee + " has invited " + inviterToString + " to " + roomNum + " room");
-        for(int i = 0; i<inviters.size(); i++)
-        {
-            if(inviters.get(i).equals(userId))
-            {
-                Room room = new Room(roomNum);
-                curRoom = room;
-                roomList.add(curRoom);
-                break;
-            }
-        }
     }
 
     void broadcastEnter(ByteBuffer leftover)
@@ -654,6 +688,12 @@ public class ClientService
         byte[] senderReceive = new byte[16];
         leftover.get(senderReceive, 0, 16);
         String enterer = new String(removeZero(senderReceive), StandardCharsets.UTF_8);
+
+        byte[] timeReceive = new byte[12];
+        leftover.get(timeReceive, 0, 12);
+        String time = new String(removeZero(timeReceive), StandardCharsets.UTF_8);
+        String usefulTime = time.substring(6, 8) + ":" + time.substring(8, 10) + ":" + time.substring(10, 12);
+
         int start = leftover.getInt();
         int end = leftover.getInt();
         if (start != -1)
@@ -666,6 +706,7 @@ public class ClientService
                     if(text.textId == j)
                     {
                         text.notReadNum--;
+                        if(enterer.equals(userId)) System.out.println(text.sender + " : " + text.text + " " + text.notReadNum+ " "+ text.time);
                         break;
                     }
                 }
@@ -754,7 +795,7 @@ public class ClientService
 
     private void read_text_restore()
     {
-        Path roomPath = Paths.get("./room_save.txt");
+        Path roomPath = Paths.get("./temp_db/"+userId+"/room_save.txt");
         if (Files.exists(roomPath))
         {
             try
@@ -766,7 +807,7 @@ public class ClientService
                         int roomNum = Integer.parseInt(roomsNum[i]);
                         Room room = new Room(roomNum);
                         roomList.add(room);
-                        Path path = Paths.get("./text_save/" + roomNum +"_"+userId+ ".txt");
+                        Path path = Paths.get("./temp_db/"+userId + "/text_save/" + roomNum +"_"+".txt");
                         if (Files.exists(path))
                         {
                             try
@@ -784,8 +825,9 @@ public class ClientService
                                         if(j == s1.length-2) continue;
                                         text += " ";
                                     }
-                                    int notRoomRead = Integer.parseInt(s1[s1.length-1]);
-                                    Text text1 = new Text(textId, sender, text, notRoomRead);
+                                    int notRoomRead = Integer.parseInt(s1[s1.length-2]);
+                                    String usefulTime = s1[s1.length-1];
+                                    Text text1 = new Text(textId, sender, text, notRoomRead,usefulTime);
                                     room.textList.add(text1);
                                 });
                             } catch (IOException e)
@@ -803,9 +845,9 @@ public class ClientService
     }
 
 
-    private void save_text(String toAdd)
+    private void save_text(String toAdd,int roomNum)
     {
-        Path path = Paths.get("./text_save/" + curRoom.roomNum +"_"+userId +".txt");
+        Path path = Paths.get("./temp_db/"+userId + "/text_save/" + roomNum +"_"+".txt");
         try
         {
             Files.createDirectories(path.getParent());
@@ -819,9 +861,10 @@ public class ClientService
     private void add_roomList(int roomNum)
     {
         String s = String.valueOf(roomNum) + " ";
-        Path path = Paths.get("./room_save.txt");
+        Path path = Paths.get("./temp_db/"+userId+"/room_save.txt");
         try
         {
+            Files.createDirectories(path.getParent());
             Files.write(path,s.getBytes(StandardCharsets.UTF_8),StandardOpenOption.CREATE,StandardOpenOption.APPEND);
         }
         catch (IOException e){ e.printStackTrace();}
@@ -846,13 +889,15 @@ public class ClientService
         String sender;
         String text;
         int notReadNum;
+        String time;
 
-        public Text(int textId, String sender, String text, int notReadNum)
+        public Text(int textId, String sender, String text, int notReadNum,String time)
         {
             this.textId = textId;
             this.sender = sender;
             this.text = text;
             this.notReadNum = notReadNum;
+            this.time = time;
         }
     }
 
