@@ -213,8 +213,8 @@ public class ClientService
                 }
                 else if(loggedIn == true && curRoom != null)
                 {
-                    int i = availableReqId(8);
-                    send(i,8,userId, curRoom.roomNum, ByteBuffer.allocate(0));
+                    int i = availableReqId(15);
+                    send(i,15,userId, curRoom.roomNum, ByteBuffer.allocate(0));
                     return;
                 }
             }
@@ -610,7 +610,11 @@ public class ClientService
         Room sendRoom = null;
         for (Room room : roomList)
         {
-            if (room.roomNum == roomNum) sendRoom = room; break;
+            if (room.roomNum == roomNum)
+            {
+                sendRoom = room;
+                break;
+            }
         }
         leftover.position(12);
         byte[] senderReceive = new byte[16];
@@ -638,6 +642,7 @@ public class ClientService
         save_text(toAdd,roomNum);
         if(userId.equals(sender)) return;
         if(curRoom == null) return;
+        if(curRoom.roomNum != roomNum) return;
         System.out.println(sender + " : " + chatting + " " + notRoomRead + " " + usefulTime);
     }
 
@@ -645,7 +650,10 @@ public class ClientService
     {
         int roomNum = leftover.getInt();
         Room room = new Room(roomNum);
-        curRoom = room;
+        if(roomList.size() == 0)
+        {
+            curRoom = room;
+        }
         add_roomList(room.roomNum);
         roomList.add(room);
         byte[] inviteeReceive = new byte[16];
@@ -706,12 +714,16 @@ public class ClientService
                     if(text.textId == j)
                     {
                         text.notReadNum--;
-                        if(enterer.equals(userId)) System.out.println(text.sender + " : " + text.text + " " + text.notReadNum+ " "+ text.time);
+                        if(enterer.equals(userId))
+                        {
+                            System.out.println(text.sender + " : " + text.text + " " + text.notReadNum+ " "+ text.time);
+                        }
                         break;
                     }
                 }
             }
         }
+        if(enterer == userId) return;
         logr.info("[" + enterer + " 가 재입장 했습니다]");
     }
 
