@@ -33,7 +33,6 @@ public class ClientService
     private Object for_broadcastInvite = new Object();
     AsynchronousChannelGroup channelGroup;
     AsynchronousSocketChannel socketChannel;
-    ByteBuffer readBuffer = ByteBuffer.allocate(1000);
     ByteBuffer writeBuffer = ByteBuffer.allocate(1000);
     boolean loggedIn = false;
     boolean connection_start_fail = false;
@@ -290,6 +289,7 @@ public class ClientService
 
     void receive()
     {
+        ByteBuffer readBuffer = ByteBuffer.allocate(1000);
         socketChannel.read(readBuffer, readBuffer, new CompletionHandler<Integer, ByteBuffer>()
         {
             @Override
@@ -303,7 +303,7 @@ public class ClientService
                     if (reqId == -1) processBroadcast(attachment);
                     else processOutput(reqId, attachment);
 
-                    readBuffer = ByteBuffer.allocate(1000);
+                    ByteBuffer readBuffer = ByteBuffer.allocate(1000);
                     socketChannel.read(readBuffer, readBuffer, this);
                 } catch (Exception e)
                 {
