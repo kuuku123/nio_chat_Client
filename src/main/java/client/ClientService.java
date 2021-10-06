@@ -502,6 +502,12 @@ public class ClientService
                 byte[] senderReceive = new byte[16];
                 data.get(senderReceive, 0, 16);
                 String sender = new String(removeZero(senderReceive), StandardCharsets.UTF_8);
+
+                byte[] timeReceive = new byte[12];
+                data.get(timeReceive,0,12);
+                String time = new String(removeZero(timeReceive), StandardCharsets.UTF_8);
+                String usefulTime = time.substring(6, 8) + ":" + time.substring(8, 10) + ":" + time.substring(10, 12);
+
                 int textId = data.getInt();
                 int notRoomRead = data.getInt();
                 int textSize = data.getInt();
@@ -513,7 +519,7 @@ public class ClientService
 
                 save_text(toAdd);
 
-                System.out.println(sender + " : " + text + " " + notRoomRead);
+                System.out.println(sender + " : " + text + " " + notRoomRead + " "+ usefulTime);
                 curRoom.textList.add(text1);
             }
         } else logr.severe("requestId: " + reqId + " : " + op + " failed");
@@ -572,11 +578,17 @@ public class ClientService
         byte[] senderReceive = new byte[16];
         leftover.get(senderReceive, 0, 16);
         String sender = new String(removeZero(senderReceive), StandardCharsets.UTF_8);
+
+        byte[] timeReceive = new byte[12];
+        leftover.get(timeReceive,0,12);
+        String time = new String(removeZero(timeReceive), StandardCharsets.UTF_8);
+        String usefulTime = time.substring(6, 8) + ":" + time.substring(8, 10) + ":" + time.substring(10, 12);
+
         int textId = leftover.getInt();
         int notRoomRead = leftover.getInt();
         int textSize = leftover.getInt();
         byte[] chat = new byte[1000];
-        leftover.position(40);
+        leftover.position(52);
         int position = leftover.position();
         int limit = leftover.limit();
         leftover.get(chat, 0, limit - position);
@@ -586,7 +598,7 @@ public class ClientService
         curRoom.textList.add(text);
         save_text(toAdd);
         if(userId.equals(sender)) return;
-        System.out.println(sender + " : " + chatting + " " + notRoomRead);
+        System.out.println(sender + " : " + chatting + " " + notRoomRead + " " + usefulTime);
     }
 
     void broadcastInvite(ByteBuffer leftover)
@@ -595,6 +607,10 @@ public class ClientService
         byte[] inviteeReceive = new byte[16];
         leftover.get(inviteeReceive, 0, 16);
         String invitee = new String(removeZero(inviteeReceive), StandardCharsets.UTF_8);
+        byte[] timeReceive = new byte[12];
+        leftover.get(timeReceive,0,12);
+        String time = new String(removeZero(timeReceive), StandardCharsets.UTF_8);
+        String usefulTime = time.substring(6, 8) + ":" + time.substring(8, 10) + ":" + time.substring(10, 12);
         int total_inv_count = leftover.getInt();
         List<String> inviters = new Vector<>();
         while (leftover.position() < leftover.limit())
