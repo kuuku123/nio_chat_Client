@@ -245,8 +245,20 @@ public class ClientService
                     inviteBuffer.flip();
                     send(a, 9, userId, roomNum, inviteBuffer);
                 }
-            } else if (command.startsWith("showuser", 1))
+            }
+            else if (command.startsWith("showuser", 1))
             {
+                if(loggedIn == true && curRoom == null)
+                {
+                    logr.info("you are not in the room");
+                    return;
+                }
+                else if(loggedIn == true && curRoom != null)
+                {
+                    int i = availableReqId(10);
+                    send(i,10,userId, curRoom.roomNum, ByteBuffer.allocate(0));
+                }
+                return;
 
             } else if (command.startsWith("showroom", 1))
             {
@@ -504,6 +516,8 @@ public class ClientService
                 inviteRoomProcess(op, reqId, serverResult, data);
                 return;
             case roomUserList:
+                roomUserListProcess(op,reqId,serverResult,data);
+                return;
             case roomList:
                 roomListProcess(op, reqId, serverResult, data);
                 return;
@@ -655,6 +669,32 @@ public class ClientService
         reqIdList.set(reqId,-1);
     }
 
+    void roomUserListProcess(OperationEnum op, int reqId, int serverResult, ByteBuffer data)
+    {
+        if(serverResult == 0)
+        {
+            logr.info("[requestId: " + reqId + " " + op + " success]");
+            String people = "";
+            int size = data.getInt();
+            people += "총 "+ size +" 명 ";
+            System.out.println(people);
+            for(int i = 0; i<size; i++)
+            {
+                byte[] userReceive = new byte[16];
+                data.get(userReceive,0,16);
+                String roomUser = new String(removeZero(userReceive), StandardCharsets.UTF_8);
+                int stateNum = data.getInt();
+                String state = "";
+                if(stateNum == 0) state = "로그아웃";
+                else if(stateNum == 1) state = "이 방에서 채팅중";
+                else if(stateNum == 2) state = "이 방에서 채팅 중이지 않음";
+                System.out.println(roomUser + " "+ state);
+            }
+        }
+        else logr.severe("requestId: " + reqId + " : " + op + " failed");
+        reqIdList.set(reqId,-1);
+    }
+
 
 
     void processBroadcast(ByteBuffer leftover)
@@ -736,11 +776,23 @@ public class ClientService
     {
         int roomNum = leftover.getInt();
         Room room = new Room(roomNum);
+        boolean roomOwner = false;
+        if(curRoom != null)
+        {
+            for (Room room1 : roomList)
+            {
+                if(room1.roomNum == roomNum)
+                {
+                    roomOwner = true;
+                    break;
+                }
+            }
+        }
         if(roomList.size() == 0)
         {
             curRoom = room;
         }
-        add_roomList(room.roomNum);
+        if(!roomOwner) add_roomList(room.roomNum);
         roomList.add(room);
         byte[] inviteeReceive = new byte[16];
         leftover.get(inviteeReceive, 0, 16);
