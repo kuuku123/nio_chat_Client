@@ -6,6 +6,8 @@ https://gitlab.com/jk6841/nio-chat-protocol/-/tree/jk
 #### (1)  
 a,b,c 로그인 -> a 가 방만든후 b 초대 -> b가 대화하다가 끊김(꺼버림), a는 계속 채팅중 -> <br>
 b가 재로그인함 ,showroom 을 통해 방을 본후 enterroom 방번호 로 들어가면 a가 썼던 채팅들을 보여줌 , a,c동일하게 됨
+<br>
+파일 업로드, 다운로드, 목록 보기 가능 기존에 같은 방에 없던 유저가 방에 들어오면 다운로드가능!!
 ### (1) Request 
 기능|Request Number|명령어|
 |:-----:|:-----:|:----:|
