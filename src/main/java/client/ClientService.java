@@ -47,6 +47,7 @@ public class ClientService
     boolean second_login = false;
     private int fileNum = -1;
     private String fileName = "";
+    int cutSize = 500;
 
 
     private static void setupLogger()
@@ -126,12 +127,11 @@ public class ClientService
                 {
                     try
                     {
-                        int cutSize = 500;
                         byte[] bytes = Files.readAllBytes(Paths.get("./"+fileName));
                         int totalSize = bytes.length;
                         int blockCount = totalSize / cutSize;
                         int blockLeftover = totalSize % cutSize;
-                        List<byte[]> byteList = new ArrayList<>();
+
                         for(int a = 0; a<=blockCount; a++)
                         {
                             byte[] small;
@@ -182,10 +182,29 @@ public class ClientService
             } else if (command.startsWith("showfile", 1))
             {
 
-            } else if (command.startsWith("downloadfile", 1))
+            }
+            else if (command.startsWith("downloadfile", 1))
             {
+                if(loggedIn == true && curRoom == null)
+                {
+                    logr.info("you are not in the room");
+                    return;
+                }
+                else if(loggedIn == true && curRoom != null)
+                {
+                    int i = availableReqId(5);
+                    ByteBuffer buffer = ByteBuffer.allocate(100);
+                    int fileNum = Integer.parseInt(command.substring(14));
+                    buffer.putInt(fileNum);
+                    buffer.putInt(cutSize);
+                    buffer.putInt(100);
+                    buffer.flip();
+                    send(i,5,userId, curRoom.roomNum, buffer);
+                }
 
-            } else if (command.startsWith("deletefile", 1))
+                return;
+            }
+            else if (command.startsWith("deletefile", 1))
             {
 
             } else if (command.startsWith("createroom", 1))
@@ -408,7 +427,7 @@ public class ClientService
 
     void receive()
     {
-        ByteBuffer readBuffer = ByteBuffer.allocate(1000);
+        ByteBuffer readBuffer = ByteBuffer.allocate(10000);
         socketChannel.read(readBuffer, readBuffer, new CompletionHandler<Integer, ByteBuffer>()
         {
             @Override
@@ -422,7 +441,7 @@ public class ClientService
                     if (reqId == -1) processBroadcast(attachment);
                     else processOutput(reqId, attachment);
 
-                    ByteBuffer readBuffer = ByteBuffer.allocate(1000);
+                    ByteBuffer readBuffer = ByteBuffer.allocate(10000);
                     socketChannel.read(readBuffer, readBuffer, this);
                 } catch (Exception e)
                 {
@@ -481,7 +500,9 @@ public class ClientService
         data.get(resultReceive);
         int serverResult = byteToInt(resultReceive);
         data.position(12);
-        OperationEnum op = OperationEnum.fromInteger(reqIdList.get(reqId));
+        OperationEnum op;
+        if(reqNum == 5) op = OperationEnum.fileDownload;
+        else op = OperationEnum.fromInteger(reqIdList.get(reqId));
         switch (op)
         {
             case login:
@@ -505,6 +526,8 @@ public class ClientService
                 return;
             case fileList:
             case fileDownload:
+                fileDownloadProcess(op,reqId,serverResult,data);
+                return;
             case fileDelete:
             case createRoom:
                 createRoomProcess(op, reqId, serverResult, data);
@@ -693,6 +716,37 @@ public class ClientService
         }
         else logr.severe("requestId: " + reqId + " : " + op + " failed");
         reqIdList.set(reqId,-1);
+    }
+    void fileDownloadProcess(OperationEnum op, int reqId, int serverResult, ByteBuffer data)
+    {
+        if(serverResult == 0)
+        {
+            logr.info("[requestId: " + reqId + " " + op + " success]");
+            int fileNum = data.getInt();
+            byte[] fileNameReceive = new byte[16];
+            data.get(fileNameReceive,0,16);
+            String fileName = new String(removeZero(fileNameReceive), StandardCharsets.UTF_8);
+            int position = data.position();
+            int limit = data.limit();
+            int fileSize = limit - position;
+            byte[] fileReceive = new byte[fileSize];
+            data.get(fileReceive,0,fileSize);
+
+            Path path = Paths.get("./temp_db/"+userId+"/download/"+fileName);
+            try
+            {
+                Files.createDirectories(path.getParent());
+                Files.write(path,fileReceive,StandardOpenOption.CREATE,StandardOpenOption.APPEND);
+            } catch (IOException e)
+            {
+                e.printStackTrace();
+            }
+
+
+        }
+        else logr.severe("requestId: " + reqId + " : " + op + " failed");
+        reqIdList.set(reqId,-1);
+
     }
 
 
