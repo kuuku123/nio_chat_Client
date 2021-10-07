@@ -134,11 +134,12 @@ public class ClientService
                         List<byte[]> byteList = new ArrayList<>();
                         for(int a = 0; a<=blockCount; a++)
                         {
-                            byte[] small = new byte[cutSize];
+                            byte[] small;
                             int c = 0;
                             int i = availableReqId(3);
                             if(a == blockCount)
                             {
+                                small = new byte[blockLeftover];
                                 for(int b = a*cutSize; b<a*cutSize+blockLeftover; b++)
                                 {
                                     small[c] = bytes[b];
@@ -147,6 +148,7 @@ public class ClientService
                             }
                             else
                             {
+                                small = new byte[cutSize];
                                 for(int b = a*cutSize; b<a*cutSize+cutSize; b++)
                                 {
                                     small[c] = bytes[b];
