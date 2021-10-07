@@ -4,10 +4,7 @@ import util.BroadcastEnum;
 import util.LogFormatter;
 import util.OperationEnum;
 
-import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.InetSocketAddress;
@@ -21,7 +18,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
 import java.util.concurrent.Executors;
@@ -821,6 +817,7 @@ public class ClientService
                 broadcastText(leftover);
                 return;
             case file_upload:
+                broadcastFileUpload(leftover);
                 return;
             case file_remove:
                 return;
@@ -972,6 +969,28 @@ public class ClientService
         leftover.get(senderReceive, 0, 16);
         String sender = new String(removeZero(senderReceive), StandardCharsets.UTF_8);
         logr.info("[" + sender +" has quit room " +roomNum+ " ]");
+    }
+
+    void broadcastFileUpload(ByteBuffer leftover)
+    {
+        int roomNum = leftover.getInt();
+        byte[] senderReceive = new byte[16];
+        leftover.get(senderReceive, 0, 16);
+        String sender = new String(removeZero(senderReceive), StandardCharsets.UTF_8);
+
+        byte[] timeReceive = new byte[12];
+        leftover.get(timeReceive, 0, 12);
+        String time = new String(removeZero(timeReceive), StandardCharsets.UTF_8);
+        String usefulTime = time.substring(6, 8) + ":" + time.substring(8, 10) + ":" + time.substring(10, 12);
+
+        int fileNum = leftover.getInt();
+        byte[] fileNameReceive = new byte[16];
+        leftover.get(fileNameReceive,0,16);
+        String fileName = new String(removeZero(fileNameReceive), StandardCharsets.UTF_8);
+
+        int totalFileSize = leftover.getInt();
+
+        System.out.println("업로더: "+sender+" 파일번호: "+fileNum+" 파일이름: "+fileName+ " 파일사이즈: "+totalFileSize+ " 가 업로드 완료 되었습니다.");
     }
 
 
