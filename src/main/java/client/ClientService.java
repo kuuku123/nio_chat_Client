@@ -179,9 +179,20 @@ public class ClientService
 
                 }
 
-            } else if (command.startsWith("showfile", 1))
+            }
+            else if (command.startsWith("showfile", 1))
             {
-
+                if(loggedIn == true && curRoom == null)
+                {
+                    logr.info("you are not in the room");
+                    return;
+                }
+                else if(loggedIn == true && curRoom != null)
+                {
+                    int i = availableReqId(4);
+                    send(i,4,userId, curRoom.roomNum, ByteBuffer.allocate(0));
+                }
+                return;
             }
             else if (command.startsWith("downloadfile", 1))
             {
@@ -207,7 +218,8 @@ public class ClientService
             else if (command.startsWith("deletefile", 1))
             {
 
-            } else if (command.startsWith("createroom", 1))
+            }
+            else if (command.startsWith("createroom", 1))
             {
                 int reqId = availableReqId(7);
                 if (loggedIn == true)
@@ -525,6 +537,8 @@ public class ClientService
                 fileUploadProcess(op,reqId,serverResult,data);
                 return;
             case fileList:
+                fileListProcess(op,reqId,serverResult,data);
+                return;
             case fileDownload:
                 fileDownloadProcess(op,reqId,serverResult,data);
                 return;
@@ -748,6 +762,29 @@ public class ClientService
         reqIdList.set(reqId,-1);
 
     }
+
+    void fileListProcess(OperationEnum op, int reqId, int serverResult, ByteBuffer data)
+    {
+        if(serverResult == 0)
+        {
+            logr.info("[requestId: " + reqId + " " + op + " success]");
+            int totalSize = data.getInt();
+            System.out.println("총 파일 갯수 "+totalSize);
+            for(int i = 0; i<totalSize; i++)
+            {
+                int fileNum = data.getInt();
+                byte[] fileNameReceive = new byte[16];
+                data.get(fileNameReceive,0,16);
+                String fileName = new String(removeZero(fileNameReceive), StandardCharsets.UTF_8);
+                int fileSize = data.getInt();
+                System.out.println("파일번호: "+fileNum + " 파일이름: "+fileName+ " 파일사이즈: "+fileSize);
+            }
+        }
+        else logr.severe("requestId: " + reqId + " : " + op + " failed");
+        reqIdList.set(reqId,-1);
+
+    }
+
 
 
 
