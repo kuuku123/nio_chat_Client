@@ -61,6 +61,11 @@ public class ClientService
         {
             if (command.startsWith("login", 1))
             {
+                if(command.length()<=6)
+                {
+                    logr.info("type your user id");
+                    return;
+                }
                 if (loggedIn == true)
                 {
                     logr.severe("already logged in");
@@ -85,7 +90,6 @@ public class ClientService
                         connection_start_fail = false;
                         return;
                     }
-
                 }
                 String name = command.substring(7);
                 userId = name;
@@ -455,7 +459,6 @@ public class ClientService
     {
         if (serverResult == 0)
         {
-            userId = "not set";
             loggedIn = false;
             second_login = true;
             curRoom = null;
