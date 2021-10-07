@@ -327,11 +327,20 @@ public class ClientService
                     int i = availableReqId(13);
                     fileName = command.substring(12);
                     ByteBuffer fileNameBuf = ByteBuffer.allocate(100);
+                    fileNameBuf.putInt(-1);
                     fileNameBuf.put(fileName.getBytes(StandardCharsets.UTF_8));
-                    fileNameBuf.flip();
-                    send(i,13,userId, curRoom.roomNum, fileNameBuf);
+                    fileNameBuf.position(20);
+                    try
+                    {
+                        byte[] bytes = Files.readAllBytes(Paths.get("./"+fileName));
+                        fileNameBuf.putInt(bytes.length);
+                        fileNameBuf.flip();
+                        send(i,13,userId, curRoom.roomNum, fileNameBuf);
+                    } catch (IOException e)
+                    {
+                        e.printStackTrace();
+                    }
                 }
-
             }
             else if(command.startsWith("exitroom",1))
             {
