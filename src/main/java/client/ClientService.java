@@ -646,7 +646,7 @@ public class ClientService
         if(userId.equals(sender)) return;
         if(curRoom == null) return;
         if(curRoom.roomNum != roomNum) return;
-        System.out.println(sender + " : " + chatting + " " + notRoomRead + " " + usefulTime);
+        System.out.println(sender + " : " + chatting + " " + notRoomRead + " " + usefulTime + " "+curRoom.roomNum+"번 방");
     }
 
     void broadcastInvite(ByteBuffer leftover)
@@ -719,7 +719,7 @@ public class ClientService
                         text.notReadNum--;
                         if(enterer.equals(userId))
                         {
-                            System.out.println(text.sender + " : " + text.text + " " + text.notReadNum+ " "+ text.time);
+                            System.out.println(text.sender + " : " + text.text + " " + text.notReadNum+ " "+ text.time + " " +curRoom.roomNum+"번 방");
                         }
                         break;
                     }
