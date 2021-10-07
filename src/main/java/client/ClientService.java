@@ -4,7 +4,10 @@ import util.BroadcastEnum;
 import util.LogFormatter;
 import util.OperationEnum;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.InetSocketAddress;
@@ -18,6 +21,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
 import java.util.concurrent.Executors;
@@ -31,9 +35,9 @@ public class ClientService
     private final static Logger logr = Logger.getGlobal();
     private Object for_startClient = new Object();
     private Object for_broadcastInvite = new Object();
+    private Object for_uploadfile = new Object();
     AsynchronousChannelGroup channelGroup;
     AsynchronousSocketChannel socketChannel;
-    ByteBuffer writeBuffer = ByteBuffer.allocate(1000);
     boolean loggedIn = false;
     boolean connection_start_fail = false;
     String userId = "not set";
@@ -41,6 +45,8 @@ public class ClientService
     List<Room> roomList = new Vector<>();
     Room curRoom = null;
     boolean second_login = false;
+    private int fileNum = -1;
+    private String fileName = "";
 
 
     private static void setupLogger()
@@ -100,15 +106,76 @@ public class ClientService
             if (loggedIn == false)
             {
                 logr.info("login first");
-            } else if (command.startsWith("logout", 1))
+            }
+            else if (command.startsWith("logout", 1))
             {
                 if (loggedIn == true)
                 {
                     int reqId = availableReqId(1);
                     send(reqId, 1, userId, -1, ByteBuffer.allocate(0));
                 }
-            } else if (command.startsWith("uploadfile", 1))
+            }
+            else if (command.startsWith("uploadfile", 1))
             {
+                if(loggedIn == true && curRoom == null)
+                {
+                    logr.info("you are not in the room");
+                    return;
+                }
+                else if(loggedIn == true && curRoom != null)
+                {
+                    try
+                    {
+                        int cutSize = 500;
+                        byte[] bytes = Files.readAllBytes(Paths.get("./"+fileName));
+                        int totalSize = bytes.length;
+                        int blockCount = totalSize / cutSize;
+                        int blockLeftover = totalSize % cutSize;
+                        List<byte[]> byteList = new ArrayList<>();
+                        for(int a = 0; a<=blockCount; a++)
+                        {
+                            byte[] small = new byte[cutSize];
+                            int c = 0;
+                            int i = availableReqId(3);
+                            if(a == blockCount)
+                            {
+                                for(int b = a*cutSize; b<a*cutSize+blockLeftover; b++)
+                                {
+                                    small[c] = bytes[b];
+                                    c++;
+                                }
+                            }
+                            else
+                            {
+                                for(int b = a*cutSize; b<a*cutSize+cutSize; b++)
+                                {
+                                    small[c] = bytes[b];
+                                    c++;
+                                }
+                            }
+                            ByteBuffer fileBuf = ByteBuffer.allocate(1000);
+                            fileBuf.putInt(fileNum);
+                            fileBuf.putInt(cutSize);
+                            fileBuf.put(small);
+                            fileBuf.flip();
+                            synchronized (for_uploadfile)
+                            {
+                                try
+                                {
+                                    send(i,3,userId, curRoom.roomNum, fileBuf);
+                                    for_uploadfile.wait(500);
+                                } catch (InterruptedException e)
+                                {
+                                    e.printStackTrace();
+                                }
+                            }
+                        }
+                    } catch (IOException e)
+                    {
+                        e.printStackTrace();
+                    }
+
+                }
 
             } else if (command.startsWith("showfile", 1))
             {
@@ -205,7 +272,20 @@ public class ClientService
 
             } else if (command.startsWith("enrollfile", 1))
             {
-
+                if(loggedIn == true && curRoom == null)
+                {
+                    logr.info("you are not in the room");
+                    return;
+                }
+                else if(loggedIn == true && curRoom != null)
+                {
+                    int i = availableReqId(13);
+                    fileName = command.substring(12);
+                    ByteBuffer fileNameBuf = ByteBuffer.allocate(100);
+                    fileNameBuf.put(fileName.getBytes(StandardCharsets.UTF_8));
+                    fileNameBuf.flip();
+                    send(i,13,userId, curRoom.roomNum, fileNameBuf);
+                }
 
             }
             else if(command.startsWith("exitroom",1))
@@ -347,6 +427,7 @@ public class ClientService
 
     void send(int reqId, int reqNum, String userId, int roomNum, ByteBuffer inputData)
     {
+        ByteBuffer writeBuffer = ByteBuffer.allocate(10000);
         writeBuffer.put(intToByte(reqId));
         writeBuffer.position(4);
         writeBuffer.put(intToByte(reqNum));
@@ -364,7 +445,6 @@ public class ClientService
             {
                 OperationEnum op = OperationEnum.fromInteger(reqNum);
                 logr.info("[보내기 완료 requestId: " + reqId + " " + op.toString() + " request]");
-                writeBuffer = ByteBuffer.allocate(1000);
             }
 
             @Override
@@ -407,6 +487,8 @@ public class ClientService
                 }
                 return;
             case fileUpload:
+                fileUploadProcess(op,reqId,serverResult,data);
+                return;
             case fileList:
             case fileDownload:
             case fileDelete:
@@ -427,6 +509,7 @@ public class ClientService
                 enterRoomProcess(op, reqId, serverResult, data);
                 return;
             case enrollFile:
+                enrollFileProcess(op,reqId,serverResult,data);
                 return;
             case fileInfo:
                 return;
@@ -519,32 +602,7 @@ public class ClientService
         if (serverResult == 0)
         {
             logr.info("[requestId: " + reqId + " " + op + " success]");
-//            int notReadCount = data.getInt();
-//            for (int i = 0; i < notReadCount; i++)
-//            {
-//                byte[] senderReceive = new byte[16];
-//                data.get(senderReceive, 0, 16);
-//                String sender = new String(removeZero(senderReceive), StandardCharsets.UTF_8);
-//
-//                byte[] timeReceive = new byte[12];
-//                data.get(timeReceive,0,12);
-//                String time = new String(removeZero(timeReceive), StandardCharsets.UTF_8);
-//                String usefulTime = time.substring(6, 8) + ":" + time.substring(8, 10) + ":" + time.substring(10, 12);
-//
-//                int textId = data.getInt();
-//                int notRoomRead = data.getInt();
-//                int textSize = data.getInt();
-//                byte[] textReceive = new byte[textSize];
-//                data.get(textReceive, 0, textSize);
-//                String text = new String(removeZero(textReceive), StandardCharsets.UTF_8);
-//                Text text1 = new Text(textId, sender, text, notRoomRead,usefulTime);
-//                String toAdd = textId + " " + sender + " " + textSize + " " + text + " " + notRoomRead + "\n";
 
-//                save_text(toAdd,roomNum);
-
-//                System.out.println(sender + " : " + text + " " + notRoomRead + " "+ usefulTime);
-//                curRoom.textList.add(text1);
-//            }
         } else logr.severe("requestId: " + reqId + " : " + op + " failed");
         reqIdList.set(reqId, -1);
 }
@@ -573,6 +631,29 @@ public class ClientService
         else logr.severe("requestId: " + reqId + " : " + op + " failed");
         reqIdList.set(reqId,-1);
     }
+    void enrollFileProcess(OperationEnum op, int reqId, int serverResult, ByteBuffer data)
+    {
+        if(serverResult == 0)
+        {
+            logr.info("[requestId: " + reqId + " " + op + " success]");
+            fileNum = data.getInt();
+        }
+        else logr.severe("requestId: " + reqId + " : " + op + " failed");
+
+        reqIdList.set(reqId,-1);
+    }
+
+    void fileUploadProcess(OperationEnum op, int reqId, int serverResult, ByteBuffer data)
+    {
+        if(serverResult == 0)
+        {
+            logr.info("[requestId: " + reqId + " " + op + " success]");
+        }
+        else logr.severe("requestId: " + reqId + " : " + op + " failed");
+        reqIdList.set(reqId,-1);
+    }
+
+
 
     void processBroadcast(ByteBuffer leftover)
     {
@@ -737,7 +818,6 @@ public class ClientService
         leftover.get(senderReceive, 0, 16);
         String sender = new String(removeZero(senderReceive), StandardCharsets.UTF_8);
         logr.info("[" + sender +" has quit room " +roomNum+ " ]");
-
     }
 
 
