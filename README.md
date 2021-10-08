@@ -16,11 +16,15 @@ b가 재로그인함 ,showroom 을 통해 방을 본후 enterroom 방번호 로 
 |텍스트 보내기|2|(text to send)|
 |파일 업로드|3|\uploadfile|
 |파일 목록|4|\showfile|
-|파일 다운로드|5|\downloadfile|
-|파일 제거|6|\deletefile|
+|파일 다운로드|5|\downloadfile (fileNumber)|
+|파일 제거|6|\deletefile (fileNumber)|
 |방 개설|7|\createroom|
 |방 탈퇴|8|\exitroom|
 |방 초대|9|\inviteuser|
 |방 참여자 목록|10|\showuser|
 |방 목록|11|\showroom|
+|방 입장|12|\enterroom (roomNum)|
+|파일 등록|13|\enrollfile (filePath)
+|파일 정보|14|x|
+|방 퇴장|15|\exitroom|
 
