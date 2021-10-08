@@ -2,6 +2,7 @@ package client;
 
 import util.BroadcastEnum;
 import util.LogFormatter;
+import util.MyLog;
 import util.OperationEnum;
 
 import java.io.BufferedReader;
@@ -28,7 +29,7 @@ import java.util.logging.Logger;
 
 public class ClientService
 {
-    private final static Logger logr = Logger.getGlobal();
+    private final static Logger logr = MyLog.getLogr();
     private Object for_startClient = new Object();
     private Object for_broadcastInvite = new Object();
     private Object for_uploadfile = new Object();
@@ -45,18 +46,6 @@ public class ClientService
     private String fileName = "";
     int cutSize = 500;
 
-
-    private static void setupLogger()
-    {
-        LogFormatter formatter = new LogFormatter();
-        LogManager.getLogManager().reset();
-        logr.setLevel(Level.ALL);
-
-        ConsoleHandler ch = new ConsoleHandler();
-        ch.setLevel(Level.INFO);
-        ch.setFormatter(formatter);
-        logr.addHandler(ch);
-    }
 
     void processInput(String command)
     {
@@ -213,6 +202,23 @@ public class ClientService
             }
             else if (command.startsWith("deletefile", 1))
             {
+                if(loggedIn == true && curRoom == null)
+                {
+                    logr.info("you are not in the room");
+                    return;
+                }
+                else if(loggedIn == true && curRoom != null)
+                {
+                    int i = availableReqId(6);
+                    ByteBuffer buffer = ByteBuffer.allocate(100);
+                    int fileNum = Integer.parseInt(command.substring(12));
+                    buffer.putInt(fileNum);
+                    buffer.flip();
+                    send(i,6,userId, curRoom.roomNum, buffer);
+                }
+
+                return;
+
 
             }
             else if (command.startsWith("createroom", 1))
@@ -548,6 +554,8 @@ public class ClientService
                 fileDownloadProcess(op,reqId,serverResult,data);
                 return;
             case fileDelete:
+                fileDeleteProcess(op,reqId,serverResult,data);
+                return;
             case createRoom:
                 createRoomProcess(op, reqId, serverResult, data);
                 return;
@@ -790,6 +798,17 @@ public class ClientService
 
     }
 
+    void fileDeleteProcess(OperationEnum op, int reqId, int serverResult, ByteBuffer data)
+    {
+        if(serverResult == 0)
+        {
+            logr.info("[requestId: " + reqId + " " + op + " success]");
+        }
+        else logr.severe("requestId: " + reqId + " : " + op + " failed");
+        reqIdList.set(reqId,-1);
+    }
+
+
 
 
 
@@ -820,6 +839,7 @@ public class ClientService
                 broadcastFileUpload(leftover);
                 return;
             case file_remove:
+                broadcastFileRemove(leftover);
                 return;
             case enter_room:
                 broadcastEnter(leftover);
@@ -991,6 +1011,28 @@ public class ClientService
         int totalFileSize = leftover.getInt();
 
         System.out.println("업로더: "+sender+" 파일번호: "+fileNum+" 파일이름: "+fileName+ " 파일사이즈: "+totalFileSize+ " 가 업로드 완료 되었습니다.");
+    }
+
+    void broadcastFileRemove(ByteBuffer leftover)
+    {
+        int roomNum = leftover.getInt();
+        byte[] senderReceive = new byte[16];
+        leftover.get(senderReceive, 0, 16);
+        String sender = new String(removeZero(senderReceive), StandardCharsets.UTF_8);
+
+        byte[] timeReceive = new byte[12];
+        leftover.get(timeReceive, 0, 12);
+        String time = new String(removeZero(timeReceive), StandardCharsets.UTF_8);
+        String usefulTime = time.substring(6, 8) + ":" + time.substring(8, 10) + ":" + time.substring(10, 12);
+
+        int fileNum = leftover.getInt();
+        byte[] fileNameReceive = new byte[16];
+        leftover.get(fileNameReceive,0,16);
+        String fileName = new String(removeZero(fileNameReceive), StandardCharsets.UTF_8);
+
+        int totalFileSize = leftover.getInt();
+
+        System.out.println("삭제요청한 사람: "+sender+" 파일번호: "+fileNum+" 파일이름: "+fileName+ " 파일사이즈: "+totalFileSize+ " 가 삭제 완료 되었습니다.");
     }
 
 
@@ -1173,7 +1215,6 @@ public class ClientService
     public static void main(String[] args)
     {
         ClientService clientExample = new ClientService();
-        setupLogger();
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
         try
         {
