@@ -1,7 +1,5 @@
 package domain;
 
-import clientservice.ClientService;
-
 import java.util.List;
 import java.util.Vector;
 

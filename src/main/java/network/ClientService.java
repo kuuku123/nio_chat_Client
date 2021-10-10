@@ -1,9 +1,8 @@
-package clientservice;
+package network;
 
 import domain.Client;
 import domain.Room;
 import util.BroadcastEnum;
-import util.ElseProcess;
 import util.MyLog;
 import util.OperationEnum;
 

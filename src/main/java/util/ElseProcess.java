@@ -1,6 +1,5 @@
 package util;
 
-import clientservice.ClientService;
 import domain.Client;
 import domain.Room;
 
