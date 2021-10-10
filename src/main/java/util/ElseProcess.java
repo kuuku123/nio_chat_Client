@@ -14,7 +14,7 @@ import java.util.Vector;
 
 public class ElseProcess
 {
-    static List<Integer> reqIdList = new Vector<>((int) Math.pow(256, 3));
+    public static List<Integer> reqIdList = new Vector<>((int) Math.pow(256, 3));
     public static int availableReqId(int reqNum)
     {
         for (int i = 0; i < reqIdList.size(); i++)
@@ -146,7 +146,7 @@ public class ElseProcess
         }
     }
 
-    private void add_roomList(int roomNum, String userId)
+    public static void add_roomList(int roomNum, String userId)
     {
         String s = String.valueOf(roomNum) + " ";
         Path path = Paths.get("./temp_db/"+userId+"/room_save.txt");
