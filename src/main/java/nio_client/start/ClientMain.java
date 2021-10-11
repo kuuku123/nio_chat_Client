@@ -1,18 +1,24 @@
-package start;
+package nio_client.start;
 
-import domain.Client;
-import service.BroadCastService;
-import service.NetworkService;
-import service.ResponseService;
-import ui.UI;
+import lombok.RequiredArgsConstructor;
+import nio_client.domain.Client;
+import nio_client.service.BroadCastService;
+import nio_client.service.NetworkService;
+import nio_client.service.ResponseService;
+import nio_client.ui.UI;
+import org.springframework.stereotype.Component;
 
+import javax.annotation.PostConstruct;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 
+
+@Component
 public class ClientMain
 {
-    public static void main(String[] args)
+    @PostConstruct
+    public void startClient()
     {
         Client client = new Client();
         ResponseService responseService = new ResponseService(client);

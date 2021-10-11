@@ -1,15 +1,13 @@
-package ui;
+package nio_client.ui;
 
-import domain.Client;
-import domain.Room;
-import service.BroadCastService;
-import service.NetworkService;
-import service.ResponseService;
-import util.MyLog;
+import nio_client.domain.Client;
+import nio_client.domain.Room;
+import nio_client.service.BroadCastService;
+import nio_client.service.NetworkService;
+import nio_client.service.ResponseService;
+import nio_client.util.MyLog;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousChannelGroup;
 import java.nio.channels.AsynchronousSocketChannel;
@@ -18,8 +16,8 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.logging.Logger;
 
-import static util.ElseProcess.availableReqId;
-import static util.ElseProcess.read_text_restore;
+import static nio_client.util.ElseProcess.availableReqId;
+import static nio_client.util.ElseProcess.read_text_restore;
 
 public class UI
 {

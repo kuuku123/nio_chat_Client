@@ -1,9 +1,10 @@
-package service;
+package nio_client.service;
 
-import domain.Client;
-import domain.Room;
-import util.ElseProcess;
-import util.MyLog;
+import nio_client.domain.Client;
+import nio_client.domain.Room;
+import nio_client.domain.Text;
+import nio_client.util.MyLog;
+import org.springframework.stereotype.Service;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -11,8 +12,8 @@ import java.util.List;
 import java.util.Vector;
 import java.util.logging.Logger;
 
-import static util.ElseProcess.*;
-import static util.ElseProcess.removeZero;
+import static nio_client.util.ElseProcess.*;
+import static nio_client.util.ElseProcess.removeZero;
 
 public class BroadCastService
 {
@@ -140,7 +141,7 @@ public class BroadCastService
         {
             for (int i = 0; i < client.getCurRoom().getTextList().size(); i++)
             {
-                Room.Text text = client.getCurRoom().getTextList().get(i);
+                Text text = client.getCurRoom().getTextList().get(i);
                 for(int j = start; j<=end; j++)
                 {
                     if(text.getTextId() == j)

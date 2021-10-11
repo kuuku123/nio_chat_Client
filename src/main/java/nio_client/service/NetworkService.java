@@ -1,24 +1,22 @@
-package service;
+package nio_client.service;
 
-import domain.Client;
-import ui.UI;
-import util.BroadcastEnum;
-import util.MyLog;
-import util.OperationEnum;
+import nio_client.domain.Client;
+import nio_client.ui.UI;
+import nio_client.util.BroadcastEnum;
+import nio_client.util.MyLog;
+import nio_client.util.OperationEnum;
+import org.springframework.stereotype.Service;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.CompletionHandler;
 import java.nio.channels.NotYetConnectedException;
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
-import static ui.UI.for_startConnection;
-import static util.ElseProcess.*;
+import static nio_client.ui.UI.for_startConnection;
+import static nio_client.util.ElseProcess.*;
 
 public class NetworkService
 {

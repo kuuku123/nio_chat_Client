@@ -1,7 +1,7 @@
-package util;
+package nio_client.util;
 
-import domain.Client;
-import domain.Room;
+import nio_client.domain.Client;
+import nio_client.domain.Room;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;

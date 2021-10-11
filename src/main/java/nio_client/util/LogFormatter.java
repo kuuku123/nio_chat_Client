@@ -1,4 +1,4 @@
-package util;
+package nio_client.util;
 import java.text.SimpleDateFormat;
         import java.util.Date;
         import java.util.logging.Formatter;

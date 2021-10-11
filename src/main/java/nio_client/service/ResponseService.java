@@ -1,11 +1,11 @@
-package service;
+package nio_client.service;
 
-import domain.Client;
-import domain.Room;
-import ui.UI;
-import util.ElseProcess;
-import util.MyLog;
-import util.OperationEnum;
+import nio_client.domain.Client;
+import nio_client.domain.Room;
+import nio_client.ui.UI;
+import nio_client.util.MyLog;
+import nio_client.util.OperationEnum;
+import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -16,9 +16,9 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.logging.Logger;
 
-import static util.ElseProcess.*;
-import static util.ElseProcess.removeZero;
-import static util.ElseProcess.reqIdList;
+import static nio_client.util.ElseProcess.*;
+import static nio_client.util.ElseProcess.removeZero;
+import static nio_client.util.ElseProcess.reqIdList;
 
 public class ResponseService
 {
