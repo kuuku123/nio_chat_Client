@@ -14,6 +14,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.CompletionHandler;
 import java.nio.channels.NotYetConnectedException;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
 import static ui.UI.for_startConnection;
@@ -100,7 +101,16 @@ public class NetworkService
                     attachment.flip();
                     int reqId = attachment.getInt();
                     attachment.position(4);
-                    if (reqId == -1) processBroadcast(attachment);
+                    if (reqId == -1)
+                    {
+                        CompletableFuture.runAsync(() ->
+                        {
+                            System.out.println(Thread.currentThread().getName());
+                            processBroadcast(attachment);
+                        });
+//                        processBroadcast(attachment);
+//                        System.out.println(Thread.currentThread().getName());
+                    }
                     else processResponse(reqId, attachment);
 
                     ByteBuffer readBuffer = ByteBuffer.allocate(10000);

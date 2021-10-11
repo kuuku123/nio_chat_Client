@@ -21,7 +21,6 @@ public class Client
 
     public Client()
     {
-
         try
         {
             channelGroup = AsynchronousChannelGroup.withFixedThreadPool(
