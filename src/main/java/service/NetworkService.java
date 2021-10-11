@@ -101,16 +101,7 @@ public class NetworkService
                     attachment.flip();
                     int reqId = attachment.getInt();
                     attachment.position(4);
-                    if (reqId == -1)
-                    {
-                        CompletableFuture.runAsync(() ->
-                        {
-                            System.out.println(Thread.currentThread().getName());
-                            processBroadcast(attachment);
-                        });
-//                        processBroadcast(attachment);
-//                        System.out.println(Thread.currentThread().getName());
-                    }
+                    if (reqId == -1) processBroadcast(attachment);
                     else processResponse(reqId, attachment);
 
                     ByteBuffer readBuffer = ByteBuffer.allocate(10000);
