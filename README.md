@@ -28,3 +28,4 @@ b가 재로그인함 ,showroom 을 통해 방을 본후 enterroom 방번호 로 
 |파일 정보|14|x|
 |방 퇴장|15|\exitroom|
 
+현재는 text 파일 형식으로 client가 방에서 한 채팅기록들을 (temp_db)라는 폴더에 보관하는 방식 추후에 jpa ,mysql 을 통해 db와 함꼐하는 형식으로 바꿀 예정
