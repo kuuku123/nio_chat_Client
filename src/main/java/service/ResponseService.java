@@ -181,6 +181,7 @@ public class ResponseService
                 if(stateNum == 0) state = "로그아웃";
                 else if(stateNum == 1) state = "이 방에서 채팅중";
                 else if(stateNum == 2) state = "이 방에서 채팅 중이지 않음";
+                else if(stateNum == 3) state = "중간에 끊김";
                 System.out.println(roomUser + " "+ state);
             }
         }
