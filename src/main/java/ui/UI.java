@@ -232,8 +232,9 @@ public class UI
                 if (client.isLoggedIn() == true)
                 {
                     String roomName = command.substring(12);
-                    ByteBuffer roomNameBuf = ByteBuffer.allocate(16);
+                    ByteBuffer roomNameBuf = ByteBuffer.allocate(100);
                     roomNameBuf.put(roomName.getBytes(StandardCharsets.UTF_8));
+                    roomNameBuf.position(16);
                     roomNameBuf.flip();
                     ns.send(reqId, 7, client.getUserId(), -1, roomNameBuf, client);
                 }
@@ -385,7 +386,7 @@ public class UI
                 ByteBuffer textBuffer = ByteBuffer.allocate(1000);
                 textBuffer.put(command.getBytes(StandardCharsets.UTF_8));
                 textBuffer.flip();
-                ns.send(i, 2, client.getUserId(), -1, textBuffer,client);
+                ns.send(i, 2, client.getUserId(), client.getCurRoom().getRoomNum(), textBuffer,client);
             }
         }
     }
