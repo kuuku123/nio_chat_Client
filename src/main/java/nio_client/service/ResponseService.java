@@ -25,7 +25,6 @@ import static nio_client.util.ElseProcess.reqIdList;
 
 @Service
 @RequiredArgsConstructor
-@Transactional
 public class ResponseService
 {
     private final static Logger logr = MyLog.getLogr();

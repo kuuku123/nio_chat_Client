@@ -8,6 +8,7 @@ import nio_client.util.BroadcastEnum;
 import nio_client.util.MyLog;
 import nio_client.util.OperationEnum;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
@@ -30,18 +31,18 @@ public class NetworkService
     private final BroadCastService broadCastService;
     private final RoomService roomService;
 
-
+    @Transactional
     public void startConnection(Client client)
     {
         try
         {
-
 
             client.getSocketChannel().connect(new InetSocketAddress("localhost", 5001), null, new CompletionHandler<Void, Object>()
             {
                 @Override
                 public void completed(Void result, Object attachment)
                 {
+
                     try
                     {
                         logr.info("[연결완료: " + client.getSocketChannel().getRemoteAddress() + "]");
@@ -55,6 +56,7 @@ public class NetworkService
                         }
                     } catch (IOException e)
                     {
+                        e.printStackTrace();
                     }
                     receive(client);
                 }
@@ -73,6 +75,7 @@ public class NetworkService
             });
         } catch (NotYetConnectedException e)
         {
+            e.printStackTrace();
         } catch (Exception e)
         {
             e.printStackTrace();
@@ -98,6 +101,7 @@ public class NetworkService
             {
                 try
                 {
+
                     attachment.flip();
                     int reqId = attachment.getInt();
                     attachment.position(4);

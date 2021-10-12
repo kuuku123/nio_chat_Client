@@ -23,6 +23,8 @@ public class Text
     private long notReadNum;
     private String time;
 
+    public Text(){}
+
     public Text(Long textId, String sender, String text, int notReadNum, String time, Room room)
     {
         this.textId = textId;
