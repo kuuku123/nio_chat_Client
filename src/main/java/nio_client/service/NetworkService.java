@@ -7,6 +7,7 @@ import nio_client.util.BroadcastEnum;
 import nio_client.util.MyLog;
 import nio_client.util.OperationEnum;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;

@@ -5,6 +5,7 @@ import nio_client.domain.Text;
 import org.springframework.stereotype.Repository;
 
 import javax.persistence.EntityManager;
+import java.util.List;
 
 @Repository
 @RequiredArgsConstructor
@@ -22,4 +23,9 @@ public class TextRepository
         return em.find(Text.class, textId);
     }
 
+    public List<Text> findAll()
+    {
+        return em.createQuery("select t from Text t",Text.class)
+                .getResultList();
+    }
 }

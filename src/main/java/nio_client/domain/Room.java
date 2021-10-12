@@ -12,12 +12,12 @@ import java.util.Vector;
 public class Room
 {
     @Id
-    private Long roomNum;
+    private Integer roomNum;
 
     @OneToMany(mappedBy = "room")
     private List<Text> textList = new Vector<>();
 
-    public Room(long roomNum)
+    public Room(int roomNum)
     {
         this.roomNum = roomNum;
     }

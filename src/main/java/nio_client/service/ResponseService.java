@@ -3,10 +3,12 @@ package nio_client.service;
 import lombok.RequiredArgsConstructor;
 import nio_client.domain.Client;
 import nio_client.domain.Room;
+import nio_client.repository.RoomRepository;
 import nio_client.ui.UI;
 import nio_client.util.MyLog;
 import nio_client.util.OperationEnum;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -27,6 +29,7 @@ public class ResponseService
 {
     private final static Logger logr = MyLog.getLogr();
     private final Client client;
+    private final RoomRepository roomRepository;
 
     public void loginProcess(OperationEnum op, int reqId, int serverResult, ByteBuffer data)
     {
@@ -71,6 +74,8 @@ public class ResponseService
             client.setCurRoom(room);
             client.getRoomList().add(room);
             add_roomList(roomNum,client.getUserId());
+            roomRepository.save(room);
+
             logr.info("[requestId: " + reqId + " " + " roomNum: " + roomNum + " " + op + " success]");
         } else logr.severe("requestId: " + reqId + " : " + op + " failed");
         reqIdList.set(reqId, -1);

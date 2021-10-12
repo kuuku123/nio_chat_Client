@@ -146,7 +146,7 @@ public class ElseProcess
         }
     }
 
-    public static void add_roomList(int roomNum, String userId)
+    public static void add_roomList(long roomNum, String userId)
     {
         String s = String.valueOf(roomNum) + " ";
         Path path = Paths.get("./temp_db/"+userId+"/room_save.txt");

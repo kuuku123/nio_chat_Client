@@ -2,11 +2,14 @@ package nio_client.start;
 
 import lombok.RequiredArgsConstructor;
 import nio_client.domain.Client;
+import nio_client.domain.Room;
+import nio_client.repository.RoomRepository;
 import nio_client.service.BroadCastService;
 import nio_client.service.NetworkService;
 import nio_client.service.ResponseService;
 import nio_client.ui.UI;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.PostConstruct;
 import java.io.BufferedReader;
@@ -19,6 +22,7 @@ import java.io.InputStreamReader;
 public class ClientMain
 {
     private final UI ui;
+
     @PostConstruct
     public void startClient()
     {
@@ -34,4 +38,6 @@ public class ClientMain
         }
         catch(IOException e){}
     }
+
+
 }

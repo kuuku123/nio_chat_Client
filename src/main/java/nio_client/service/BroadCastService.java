@@ -4,8 +4,11 @@ import lombok.RequiredArgsConstructor;
 import nio_client.domain.Client;
 import nio_client.domain.Room;
 import nio_client.domain.Text;
+import nio_client.repository.RoomRepository;
+import nio_client.repository.TextRepository;
 import nio_client.util.MyLog;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -22,6 +25,8 @@ public class BroadCastService
 {
     private final static Logger logr = MyLog.getLogr();
     private final Client client;
+    private final TextRepository textRepository;
+    private final RoomRepository roomRepository;
 
     public void broadcastText(ByteBuffer leftover)
     {
@@ -59,6 +64,8 @@ public class BroadCastService
 
         String toAdd = textId + " " + sender + " " + textSize + " " + chatting + " " + notRoomRead + " " +usefulTime+"\n";
         save_text(toAdd,roomNum, client.getUserId());
+        textRepository.save(new Text((long) textId,sender,chatting,notRoomRead,usefulTime,sendRoom));
+
         if(client.getUserId().equals(sender)) return;
         if(client.getCurRoom() == null) return;
         if(client.getCurRoom().getRoomNum() != roomNum) return;
@@ -85,7 +92,11 @@ public class BroadCastService
         {
             client.setCurRoom(room);
         }
-        if(!roomOwner) add_roomList(room.getRoomNum(),client.getUserId());
+        if(!roomOwner)
+        {
+            add_roomList(room.getRoomNum(),client.getUserId());
+            roomRepository.save(room);
+        }
         client.getRoomList().add(room);
         byte[] inviteeReceive = new byte[16];
         leftover.get(inviteeReceive, 0, 16);
