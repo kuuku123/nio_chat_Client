@@ -12,29 +12,21 @@ import java.util.Vector;
 public class Room
 {
     @Id
-    int roomNum;
+    private Long roomNum;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "client_LongId")
-    private Client client;
+    @OneToMany(mappedBy = "room")
+    private List<Text> textList = new Vector<>();
 
-    @OneToMany
-    List<Text> textList = new Vector<>();
-
-    public Room(int roomNum)
+    public Room(long roomNum)
     {
         this.roomNum = roomNum;
     }
 
-    public Room()
+    public Room() {}
+
+    public void addNewTextToRoom(Long textId, String sender, String text, int notRoomRead, String usefulTime,Room room)
     {
-
-    }
-
-
-    public void addNewTextToRoom(int textId, String sender, String text, int notRoomRead, String usefulTime)
-    {
-        Text text1 = new Text(textId, sender, text, notRoomRead,usefulTime);
+        Text text1 = new Text(textId, sender, text, notRoomRead,usefulTime,room);
         textList.add(text1);
     }
 }

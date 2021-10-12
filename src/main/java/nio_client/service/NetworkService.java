@@ -1,5 +1,6 @@
 package nio_client.service;
 
+import lombok.RequiredArgsConstructor;
 import nio_client.domain.Client;
 import nio_client.ui.UI;
 import nio_client.util.BroadcastEnum;
@@ -18,17 +19,14 @@ import java.util.logging.Logger;
 import static nio_client.ui.UI.for_startConnection;
 import static nio_client.util.ElseProcess.*;
 
+@Service
+@RequiredArgsConstructor
 public class NetworkService
 {
     private final static Logger logr = MyLog.getLogr();
     private final ResponseService responseService;
     private final BroadCastService broadCastService;
 
-    public NetworkService(ResponseService responseService, BroadCastService broadCastService)
-    {
-        this.responseService = responseService;
-        this.broadCastService = broadCastService;
-    }
 
     public void startConnection(Client client)
     {

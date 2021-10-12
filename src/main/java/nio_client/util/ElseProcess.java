@@ -116,7 +116,7 @@ public class ElseProcess
                                     }
                                     int notRoomRead = Integer.parseInt(s1[s1.length-2]);
                                     String usefulTime = s1[s1.length-1];
-                                    room.addNewTextToRoom(textId,sender,text,notRoomRead,usefulTime);
+                                    room.addNewTextToRoom((long)textId,sender,text,notRoomRead,usefulTime,room);
                                 });
                             } catch (IOException e)
                             {

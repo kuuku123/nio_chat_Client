@@ -1,5 +1,6 @@
 package nio_client.service;
 
+import lombok.RequiredArgsConstructor;
 import nio_client.domain.Client;
 import nio_client.domain.Room;
 import nio_client.ui.UI;
@@ -20,15 +21,12 @@ import static nio_client.util.ElseProcess.*;
 import static nio_client.util.ElseProcess.removeZero;
 import static nio_client.util.ElseProcess.reqIdList;
 
+@Service
+@RequiredArgsConstructor
 public class ResponseService
 {
     private final static Logger logr = MyLog.getLogr();
-    private Client client;
-
-    public ResponseService(Client client)
-    {
-        this.client = client;
-    }
+    private final Client client;
 
     public void loginProcess(OperationEnum op, int reqId, int serverResult, ByteBuffer data)
     {

@@ -1,5 +1,6 @@
 package nio_client.service;
 
+import lombok.RequiredArgsConstructor;
 import nio_client.domain.Client;
 import nio_client.domain.Room;
 import nio_client.domain.Text;
@@ -15,15 +16,12 @@ import java.util.logging.Logger;
 import static nio_client.util.ElseProcess.*;
 import static nio_client.util.ElseProcess.removeZero;
 
+@Service
+@RequiredArgsConstructor
 public class BroadCastService
 {
     private final static Logger logr = MyLog.getLogr();
     private final Client client;
-
-    public BroadCastService(Client client)
-    {
-        this.client = client;
-    }
 
     public void broadcastText(ByteBuffer leftover)
     {
@@ -57,7 +55,7 @@ public class BroadCastService
         leftover.get(chat, 0, limit - position);
         String chatting = new String(removeZero(chat), StandardCharsets.UTF_8);
 
-        sendRoom.addNewTextToRoom(textId,sender,chatting,notRoomRead,usefulTime);
+        sendRoom.addNewTextToRoom((long) textId,sender,chatting,notRoomRead,usefulTime,sendRoom);
 
         String toAdd = textId + " " + sender + " " + textSize + " " + chatting + " " + notRoomRead + " " +usefulTime+"\n";
         save_text(toAdd,roomNum, client.getUserId());

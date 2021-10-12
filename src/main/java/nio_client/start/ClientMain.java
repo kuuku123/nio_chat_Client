@@ -15,16 +15,13 @@ import java.io.InputStreamReader;
 
 
 @Component
+@RequiredArgsConstructor
 public class ClientMain
 {
+    private final UI ui;
     @PostConstruct
     public void startClient()
     {
-        Client client = new Client();
-        ResponseService responseService = new ResponseService(client);
-        BroadCastService broadCastService = new BroadCastService(client);
-        NetworkService networkService = new NetworkService(responseService, broadCastService);
-        UI ui = new UI(client, networkService);
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
         try
         {

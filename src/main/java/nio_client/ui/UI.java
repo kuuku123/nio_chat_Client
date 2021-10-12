@@ -1,12 +1,15 @@
 package nio_client.ui;
 
+import lombok.RequiredArgsConstructor;
 import nio_client.domain.Client;
 import nio_client.domain.Room;
 import nio_client.service.BroadCastService;
 import nio_client.service.NetworkService;
 import nio_client.service.ResponseService;
 import nio_client.util.MyLog;
+import org.springframework.stereotype.Component;
 
+import javax.annotation.PostConstruct;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousChannelGroup;
@@ -19,25 +22,26 @@ import java.util.logging.Logger;
 import static nio_client.util.ElseProcess.availableReqId;
 import static nio_client.util.ElseProcess.read_text_restore;
 
+@Component
+@RequiredArgsConstructor
 public class UI
 {
+    private final Client client;
+    private final NetworkService ns;
 
     public static Object for_startConnection = new Object();
     public static Object for_uploadfile = new Object();
     public static Object for_broadcastInvite = new Object();
     private final static Logger logr = MyLog.getLogr();
-    private Client client;
-    private final NetworkService ns;
     private AsynchronousSocketChannel socketChannel;
     private AsynchronousChannelGroup channelGroup;
     public static int fileNum = -1;
     public static String fileName = "";
     int cutSize = 500;
 
-    public UI(Client client, NetworkService networkService)
+    @PostConstruct
+    public void init()
     {
-        this.client = client;
-        this.ns = networkService;
         this.socketChannel = client.getSocketChannel();
         this.channelGroup = client.getChannelGroup();
     }
