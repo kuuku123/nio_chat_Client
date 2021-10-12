@@ -2,6 +2,7 @@ package nio_client.service;
 
 import lombok.RequiredArgsConstructor;
 import nio_client.domain.Client;
+import nio_client.domain.Room;
 import nio_client.ui.UI;
 import nio_client.util.BroadcastEnum;
 import nio_client.util.MyLog;
@@ -27,12 +28,14 @@ public class NetworkService
     private final static Logger logr = MyLog.getLogr();
     private final ResponseService responseService;
     private final BroadCastService broadCastService;
+    private final RoomService roomService;
 
 
     public void startConnection(Client client)
     {
         try
         {
+
 
             client.getSocketChannel().connect(new InetSocketAddress("localhost", 5001), null, new CompletionHandler<Void, Object>()
             {
