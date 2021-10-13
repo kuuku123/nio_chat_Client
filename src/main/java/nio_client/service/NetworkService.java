@@ -31,6 +31,7 @@ public class NetworkService
     private final BroadCastService broadCastService;
     private final RoomService roomService;
 
+    @Transactional
     public void startConnection(Client client)
     {
         try
@@ -44,8 +45,6 @@ public class NetworkService
 
                     try
                     {
-                        Room room = new Room(10);
-                        roomService.join(room);
                         logr.info("[연결완료: " + client.getSocketChannel().getRemoteAddress() + "]");
                         for (int i = 0; i < (int) Math.pow(256, 3); i++)
                         {

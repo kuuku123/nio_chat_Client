@@ -25,8 +25,8 @@ public class BroadCastService
 {
     private final static Logger logr = MyLog.getLogr();
     private final Client client;
-    private final TextRepository textRepository;
-    private final RoomRepository roomRepository;
+    private final RoomService roomService;
+    private final TextService textService;
 
     public void broadcastText(ByteBuffer leftover)
     {
@@ -64,7 +64,7 @@ public class BroadCastService
 
         String toAdd = textId + " " + sender + " " + textSize + " " + chatting + " " + notRoomRead + " " +usefulTime+"\n";
         save_text(toAdd,roomNum, client.getUserId());
-        textRepository.save(new Text((long) textId,sender,chatting,notRoomRead,usefulTime,sendRoom));
+        textService.join(new Text((long) textId,sender,chatting,notRoomRead,usefulTime,sendRoom));
 
         if(client.getUserId().equals(sender)) return;
         if(client.getCurRoom() == null) return;
@@ -95,7 +95,7 @@ public class BroadCastService
         if(!roomOwner)
         {
             add_roomList(room.getRoomNum(),client.getUserId());
-            roomRepository.save(room);
+            roomService.join(room);
         }
         client.getRoomList().add(room);
         byte[] inviteeReceive = new byte[16];

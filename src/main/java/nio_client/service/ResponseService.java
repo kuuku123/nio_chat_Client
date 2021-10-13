@@ -29,7 +29,7 @@ public class ResponseService
 {
     private final static Logger logr = MyLog.getLogr();
     private final Client client;
-    private final RoomRepository roomRepository;
+    private final RoomService roomService;
 
     public void loginProcess(OperationEnum op, int reqId, int serverResult, ByteBuffer data)
     {
@@ -74,7 +74,7 @@ public class ResponseService
             client.setCurRoom(room);
             client.getRoomList().add(room);
             add_roomList(roomNum,client.getUserId());
-            roomRepository.save(room);
+            roomService.join(room);
 
             logr.info("[requestId: " + reqId + " " + " roomNum: " + roomNum + " " + op + " success]");
         } else logr.severe("requestId: " + reqId + " : " + op + " failed");
