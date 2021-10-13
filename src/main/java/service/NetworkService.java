@@ -259,6 +259,8 @@ public class NetworkService
             case enter_room:
                 broadCastService.broadcastEnter(leftover);
                 return;
+            case closed:
+                broadCastService.broadcastClose(leftover);
         }
     }
 

@@ -211,4 +211,13 @@ public class BroadCastService
 
         System.out.println("삭제요청한 사람: "+sender+" 파일번호: "+fileNum+" 파일이름: "+fileName+ " 파일사이즈: "+totalFileSize+ " 가 삭제 완료 되었습니다.");
     }
+
+    public void broadcastClose(ByteBuffer leftover)
+    {
+        int roomNum = leftover.getInt();
+        byte[] senderReceive = new byte[16];
+        leftover.get(senderReceive, 0, 16);
+        String sender = new String(removeZero(senderReceive), StandardCharsets.UTF_8);
+        System.out.println(sender + " 가 갑자기 끊어짐");
+    }
 }
