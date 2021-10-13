@@ -53,8 +53,14 @@ public class ResponseService
         if (serverResult == 0)
         {
             client.setLoggedIn(false);
-            client.setSecond_login(true);
             client.setCurRoom(null);
+            try
+            {
+                client.getSocketChannel().close();
+            } catch (IOException e)
+            {
+                e.printStackTrace();
+            }
             logr.info("[logout success]");
         }
         else if (serverResult == 1)

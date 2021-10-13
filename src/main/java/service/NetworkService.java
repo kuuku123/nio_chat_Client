@@ -96,19 +96,26 @@ public class NetworkService
             @Override
             public void completed(Integer result, ByteBuffer attachment)
             {
-                try
+                if(result != -1)
                 {
-                    attachment.flip();
-                    int reqId = attachment.getInt();
-                    attachment.position(4);
-                    if (reqId == -1) processBroadcast(attachment);
-                    else processResponse(reqId, attachment);
+                    try
+                    {
+                        attachment.flip();
+                        int reqId = attachment.getInt();
+                        attachment.position(4);
+                        if (reqId == -1) processBroadcast(attachment);
+                        else processResponse(reqId, attachment);
 
-                    ByteBuffer readBuffer = ByteBuffer.allocate(10000);
-                    client.getSocketChannel().read(readBuffer, readBuffer, this);
-                } catch (Exception e)
+                        ByteBuffer readBuffer = ByteBuffer.allocate(10000);
+                        if(client.getSocketChannel().isOpen())  client.getSocketChannel().read(readBuffer, readBuffer, this);
+                    } catch (Exception e)
+                    {
+                        e.printStackTrace();
+                    }
+                }
+                else if(result == -1)
                 {
-                    e.printStackTrace();
+                    logr.info("[ server has closed your socket channel ]");
                 }
             }
 

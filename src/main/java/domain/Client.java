@@ -14,7 +14,6 @@ public class Client
     boolean loggedIn = false;
     boolean connection_start_fail = false;
     Room curRoom = null;
-    boolean second_login = false;
     private AsynchronousSocketChannel socketChannel;
     private AsynchronousChannelGroup channelGroup;
     boolean closeGroup = false;
@@ -108,13 +107,4 @@ public class Client
         this.curRoom = curRoom;
     }
 
-    public boolean isSecond_login()
-    {
-        return second_login;
-    }
-
-    public void setSecond_login(boolean second_login)
-    {
-        this.second_login = second_login;
-    }
 }

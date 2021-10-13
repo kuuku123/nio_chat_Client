@@ -60,33 +60,42 @@ public class UI
                     logr.severe("already logged in");
                     return;
                 }
-                if(!client.isSecond_login())
+                if(!client.getSocketChannel().isOpen())
                 {
-                    synchronized (for_startConnection)
+                    try
                     {
-                        try
-                        {
-                            ns.startConnection(client);
-                            for_startConnection.wait();
-                        } catch (InterruptedException e)
-                        {
-                            e.printStackTrace();
-                        }
-                    }
-                    if (client.isConnection_start_fail())
+                        client.setSocketChannel(AsynchronousSocketChannel.open(client.getChannelGroup()));
+                    } catch (IOException e)
                     {
-                        logr.info("[서버가 준비 안됨 기다려야함]");
-                        client.setConnection_start_fail(false);
-                        try
-                        {
-                            client.setSocketChannel(AsynchronousSocketChannel.open(client.getChannelGroup()));
-                        } catch (IOException e)
-                        {
-                            e.printStackTrace();
-                        }
-                        return;
+                        e.printStackTrace();
                     }
                 }
+
+                synchronized (for_startConnection)
+                {
+                    try
+                    {
+                        ns.startConnection(client);
+                        for_startConnection.wait();
+                    } catch (InterruptedException e)
+                    {
+                        e.printStackTrace();
+                    }
+                }
+                if (client.isConnection_start_fail())
+                {
+                    logr.info("[서버가 준비 안됨 기다려야함]");
+                    client.setConnection_start_fail(false);
+                    try
+                    {
+                        client.setSocketChannel(AsynchronousSocketChannel.open(client.getChannelGroup()));
+                    } catch (IOException e)
+                    {
+                        e.printStackTrace();
+                    }
+                    return;
+                }
+
                 String name = command.substring(7);
                 client.setUserId(name);
                 read_text_restore(client);
