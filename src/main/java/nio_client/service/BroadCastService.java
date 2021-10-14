@@ -92,7 +92,10 @@ public class BroadCastService
         if(!roomOwner)
         {
 //            add_roomList(room.getRoomNum(),client.getUserId());
-            roomService.join(room,client.getUserId());
+            synchronized (logr)
+            {
+                roomService.join(room,client.getUserId());
+            }
         }
         client.getRoomList().add(room);
         byte[] inviteeReceive = new byte[16];

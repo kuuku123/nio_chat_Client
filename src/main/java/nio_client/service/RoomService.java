@@ -7,6 +7,7 @@ import nio_client.domain.UserRoomMapping;
 import nio_client.repository.RoomRepository;
 import nio_client.repository.UserRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,7 +15,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-@Transactional
+@Transactional(propagation = Propagation.REQUIRES_NEW)
 public class RoomService
 {
     private final RoomRepository roomRepository;
