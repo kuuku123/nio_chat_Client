@@ -31,7 +31,6 @@ public class NetworkService
     private final BroadCastService broadCastService;
     private final RoomService roomService;
 
-    @Transactional
     public void startConnection(Client client)
     {
         try

@@ -8,6 +8,8 @@ import nio_client.service.BroadCastService;
 import nio_client.service.NetworkService;
 import nio_client.service.ResponseService;
 import nio_client.ui.UI;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,7 +25,7 @@ public class ClientMain
 {
     private final UI ui;
 
-    @PostConstruct
+    @EventListener(ApplicationReadyEvent.class)
     public void startClient()
     {
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
