@@ -32,3 +32,4 @@ b가 재로그인함 ,showroom 을 통해 방을 본후 enterroom 방번호 로 
 <br>
 <br>
 (spring branch) 해결이라고 하긴 애매한 이슈 왜 @Transactional이 뜻대로 동작안하는 지 모르겠음 나의 질문 링크 https://stackoverflow.com/questions/69538924/spring-transactional-not-working-inside-completionhandler-callback-method
+(spring branch) UI 클래스에서 @PostConstruct를 @EventListener(ApplicationReadyEvent.class) 로 바꾸니 main thread가 더 이상 블로킹을 하지 않고 정상적으로 동작함
