@@ -5,6 +5,7 @@ import nio_client.domain.Room;
 import org.springframework.stereotype.Repository;
 
 import javax.persistence.EntityManager;
+import javax.persistence.NoResultException;
 import java.util.List;
 
 @Repository
@@ -18,9 +19,18 @@ public class RoomRepository
         em.persist(room);
     }
 
-    public Room findByRoomNum(long roomNum)
+    public Room findByRoomNum(int roomNum)
     {
-        return em.find(Room.class,roomNum);
+        try
+        {
+            return em.createQuery("select r from Room r where r.roomNum =:roomNum ",Room.class)
+                    .setParameter("roomNum",roomNum)
+                    .getSingleResult();
+        }
+        catch (NoResultException e)
+        {
+            return null;
+        }
     }
 
     public List<Room> findAll()

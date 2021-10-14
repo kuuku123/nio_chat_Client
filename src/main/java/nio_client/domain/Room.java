@@ -36,6 +36,5 @@ public class Room
     {
         Text text1 = new Text(textId, sender, text, notRoomRead,usefulTime,room);
         textList.add(text1);
-        text1.setRoom(this);
     }
 }

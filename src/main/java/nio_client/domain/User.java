@@ -20,7 +20,7 @@ public class User
 
     private String userName;
 
-    @OneToMany(mappedBy = "user")
-    private List<Room> userRoomList = new Vector<>();
+    @OneToMany(mappedBy = "user",cascade = CascadeType.ALL)
+    private List<UserRoomMapping> userRoomList = new Vector<>();
 
 }
