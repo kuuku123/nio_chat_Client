@@ -1,33 +1,37 @@
 package nio_client.domain;
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import javax.persistence.Entity;
-import javax.persistence.Id;
-import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
+import javax.persistence.*;
 
 @Entity
 @Getter @Setter
+@NoArgsConstructor
 public class Text
 {
     @Id
-    private Long textId;
+    @Column(name = "text_id")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+
+    private int textNum;
 
     @ManyToOne
-    @JoinColumn(name = "roomNum")
+    @JoinColumn(name = "room_id")
     private Room room;
+
     private String sender;
     private String text;
     private long notReadNum;
     private String time;
 
-    public Text(){}
 
-    public Text(Long textId, String sender, String text, int notReadNum, String time, Room room)
+    public Text(int textId, String sender, String text, int notReadNum, String time, Room room)
     {
-        this.textId = textId;
+        this.textNum = textId;
         this.sender = sender;
         this.text = text;
         this.notReadNum = notReadNum;

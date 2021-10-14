@@ -91,7 +91,7 @@ public class UI
                 }
                 String name = command.substring(7);
                 client.setUserId(name);
-                read_text_restore(client);
+//                read_text_restore(client);
                 int reqId = availableReqId(0);
                 ns.send(reqId, 0, name, -1, ByteBuffer.allocate(0),client);
             }

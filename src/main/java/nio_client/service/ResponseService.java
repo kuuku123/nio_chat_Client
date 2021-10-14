@@ -3,6 +3,7 @@ package nio_client.service;
 import lombok.RequiredArgsConstructor;
 import nio_client.domain.Client;
 import nio_client.domain.Room;
+import nio_client.domain.User;
 import nio_client.repository.RoomRepository;
 import nio_client.ui.UI;
 import nio_client.util.MyLog;
@@ -17,6 +18,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.List;
 import java.util.logging.Logger;
 
 import static nio_client.util.ElseProcess.*;
@@ -30,6 +32,7 @@ public class ResponseService
     private final static Logger logr = MyLog.getLogr();
     private final Client client;
     private final RoomService roomService;
+    private final UserService userService;
 
     public void loginProcess(OperationEnum op, int reqId, int serverResult, ByteBuffer data)
     {
@@ -38,6 +41,17 @@ public class ResponseService
             client.setLoggedIn(true);
             logr.info("[requestId: " + reqId + " " + op + " success]");
             logr.info("[room, text info restored]");
+            List<User> byUserName = userService.findByUserName(client.getUserId());
+            if (byUserName.size() == 0)
+            {
+                User user = new User();
+                user.setUserName(client.getUserId());
+                userService.join(user);
+            }
+            else
+            {
+                logr.info("[재로그인 확인]");
+            }
         } else if (serverResult == 1)
         {
             logr.severe("requestId: " + reqId + " : " + op + " failed");
@@ -73,8 +87,8 @@ public class ResponseService
             Room room = new Room(roomNum);
             client.setCurRoom(room);
             client.getRoomList().add(room);
-            add_roomList(roomNum,client.getUserId());
-            roomService.join(room);
+//            add_roomList(roomNum,client.getUserId());
+            roomService.join(room, client.getUserId());
 
             logr.info("[requestId: " + reqId + " " + " roomNum: " + roomNum + " " + op + " success]");
         } else logr.severe("requestId: " + reqId + " : " + op + " failed");

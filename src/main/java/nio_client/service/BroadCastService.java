@@ -4,11 +4,8 @@ import lombok.RequiredArgsConstructor;
 import nio_client.domain.Client;
 import nio_client.domain.Room;
 import nio_client.domain.Text;
-import nio_client.repository.RoomRepository;
-import nio_client.repository.TextRepository;
 import nio_client.util.MyLog;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -60,11 +57,11 @@ public class BroadCastService
         leftover.get(chat, 0, limit - position);
         String chatting = new String(removeZero(chat), StandardCharsets.UTF_8);
 
-        sendRoom.addNewTextToRoom((long) textId,sender,chatting,notRoomRead,usefulTime,sendRoom);
+        sendRoom.addNewTextToRoom(textId,sender,chatting,notRoomRead,usefulTime,sendRoom);
 
         String toAdd = textId + " " + sender + " " + textSize + " " + chatting + " " + notRoomRead + " " +usefulTime+"\n";
-        save_text(toAdd,roomNum, client.getUserId());
-        textService.join(new Text((long) textId,sender,chatting,notRoomRead,usefulTime,sendRoom));
+//        save_text(toAdd,roomNum, client.getUserId());
+        textService.join(sendRoom.getTextList().get(sendRoom.getTextList().size()-1));
 
         if(client.getUserId().equals(sender)) return;
         if(client.getCurRoom() == null) return;
@@ -94,8 +91,8 @@ public class BroadCastService
         }
         if(!roomOwner)
         {
-            add_roomList(room.getRoomNum(),client.getUserId());
-            roomService.join(room);
+//            add_roomList(room.getRoomNum(),client.getUserId());
+            roomService.join(room,client.getUserId());
         }
         client.getRoomList().add(room);
         byte[] inviteeReceive = new byte[16];
@@ -153,7 +150,7 @@ public class BroadCastService
                 Text text = client.getCurRoom().getTextList().get(i);
                 for(int j = start; j<=end; j++)
                 {
-                    if(text.getTextId() == j)
+                    if(text.getTextNum() == j)
                     {
                         text.setNotReadNum(text.getNotReadNum()-1);
                         if(enterer.equals(client.getUserId()))
