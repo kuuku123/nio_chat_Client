@@ -2,6 +2,7 @@ package service;
 
 import domain.Client;
 import domain.Room;
+import domain.Text;
 import util.ElseProcess;
 import util.MyLog;
 
@@ -140,7 +141,7 @@ public class BroadCastService
         {
             for (int i = 0; i < client.getCurRoom().getTextList().size(); i++)
             {
-                Room.Text text = client.getCurRoom().getTextList().get(i);
+                Text text = client.getCurRoom().getTextList().get(i);
                 for(int j = start; j<=end; j++)
                 {
                     if(text.getTextId() == j)

@@ -263,11 +263,4 @@ public class NetworkService
                 broadCastService.broadcastClose(leftover);
         }
     }
-
-
-
-
-
-
-
 }
