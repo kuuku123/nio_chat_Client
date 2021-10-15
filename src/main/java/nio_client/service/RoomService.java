@@ -15,7 +15,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(propagation = Propagation.REQUIRES_NEW)
+@Transactional
 public class RoomService
 {
     private final RoomRepository roomRepository;
@@ -28,7 +28,6 @@ public class RoomService
         Room byRoomNum = roomRepository.findByRoomNum(room.getRoomNum());
         if (byRoomNum != null)
         {
-            byRoomNum.setUser(user);
             UserRoomMapping userRoomMapping = new UserRoomMapping();
             userRoomMapping.setRoom(byRoomNum);
             userRoomMapping.setUser(user);
@@ -36,7 +35,6 @@ public class RoomService
         }
         else
         {
-            room.setUser(user);
             UserRoomMapping userRoomMapping = new UserRoomMapping();
             userRoomMapping.setRoom(room);
             userRoomMapping.setUser(user);

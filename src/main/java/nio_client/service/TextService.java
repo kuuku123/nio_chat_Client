@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import nio_client.domain.Text;
 import nio_client.repository.TextRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -15,6 +16,10 @@ public class TextService
 
     public void join(Text text)
     {
-        textRepository.save(text);
+        Text byTextId = textRepository.findByTextNum(text.getTextNum());
+        if(byTextId == null)
+        {
+            textRepository.save(text);
+        }
     }
 }

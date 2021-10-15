@@ -5,6 +5,7 @@ import nio_client.domain.Text;
 import org.springframework.stereotype.Repository;
 
 import javax.persistence.EntityManager;
+import javax.persistence.NoResultException;
 import java.util.List;
 
 @Repository
@@ -18,9 +19,18 @@ public class TextRepository
         em.persist(text);
     }
 
-    public Text findByTextId(long textId)
+    public Text findByTextNum(int textNum)
     {
-        return em.find(Text.class, textId);
+        try
+        {
+            return (Text) em.createQuery("select t from Text t where t.textNum =: textNum")
+                    .setParameter("textNum", textNum)
+                    .getSingleResult();
+        }
+        catch (NoResultException e)
+        {
+            return null;
+        }
     }
 
     public List<Text> findAll()

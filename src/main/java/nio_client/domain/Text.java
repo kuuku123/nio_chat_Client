@@ -16,7 +16,6 @@ public class Text
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-
     private int textNum;
 
     @ManyToOne
@@ -25,7 +24,7 @@ public class Text
 
     private String sender;
     private String text;
-    private long notReadNum;
+    private int notReadNum;
     private String time;
 
 

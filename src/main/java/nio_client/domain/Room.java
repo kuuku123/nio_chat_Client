@@ -23,10 +23,6 @@ public class Room
     @OneToMany(mappedBy = "room")
     private List<Text> textList = new Vector<>();
 
-    @ManyToOne
-    @JoinColumn(name = "user_id")
-    private User user;
-
     public Room(int roomNum)
     {
         this.roomNum = roomNum;
