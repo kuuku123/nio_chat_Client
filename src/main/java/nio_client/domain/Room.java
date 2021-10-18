@@ -28,9 +28,4 @@ public class Room
         this.roomNum = roomNum;
     }
 
-    public void addNewTextToRoom(int textId, String sender, String text, int notRoomRead, String usefulTime,Room room)
-    {
-        Text text1 = new Text(textId, sender, text, notRoomRead,usefulTime,room);
-        textList.add(text1);
-    }
 }

@@ -2,6 +2,7 @@ package nio_client.service;
 
 import lombok.RequiredArgsConstructor;
 import nio_client.domain.Room;
+import nio_client.domain.Text;
 import nio_client.domain.User;
 import nio_client.domain.UserRoomMapping;
 import nio_client.repository.RoomRepository;
@@ -41,5 +42,11 @@ public class RoomService
             user.getUserRoomList().add(userRoomMapping);
             roomRepository.save(room);
         }
+    }
+
+    public void update(int roomNum, Text text)
+    {
+        Room byRoomNum = roomRepository.findByRoomNum(roomNum);
+        byRoomNum.getTextList().add(text);
     }
 }

@@ -16,10 +16,28 @@ public class TextService
 
     public void join(Text text)
     {
-        Text byTextId = textRepository.findByTextNum(text.getTextNum());
-        if(byTextId == null)
+        textRepository.save(text);
+    }
+
+    public Text findOne(int textNum)
+    {
+        Text byTextId = textRepository.findByTextNum(textNum);
+        if (byTextId != null)
         {
-            textRepository.save(text);
+            return byTextId;
+        }
+        else return null;
+    }
+
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public void checkAndSave(int textNum,Text text)
+    {
+        Text one = findOne(textNum);
+        if(one == null)
+        {
+            System.out.println("shouldn't be here "+textNum);
+//            roomService.update(roomNum,text);
+            join(text);
         }
     }
 }

@@ -2,6 +2,7 @@ package nio_client.util;
 
 import nio_client.domain.Client;
 import nio_client.domain.Room;
+import nio_client.domain.Text;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -116,7 +117,8 @@ public class ElseProcess
                                     }
                                     int notRoomRead = Integer.parseInt(s1[s1.length-2]);
                                     String usefulTime = s1[s1.length-1];
-                                    room.addNewTextToRoom(textId,sender,text,notRoomRead,usefulTime,room);
+                                    Text text1 = new Text(textId, sender, text, notRoomRead, usefulTime, room);
+                                    room.getTextList().add(text1);
                                 });
                             } catch (IOException e)
                             {

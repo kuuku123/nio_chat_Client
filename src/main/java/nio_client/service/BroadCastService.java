@@ -56,12 +56,19 @@ public class BroadCastService
         int limit = leftover.limit();
         leftover.get(chat, 0, limit - position);
         String chatting = new String(removeZero(chat), StandardCharsets.UTF_8);
-
-        sendRoom.addNewTextToRoom(textId,sender,chatting,notRoomRead,usefulTime,sendRoom);
+        Text text = new Text(textId, sender, chatting, notRoomRead, usefulTime, sendRoom);
+        sendRoom.getTextList().add(text);
 
         String toAdd = textId + " " + sender + " " + textSize + " " + chatting + " " + notRoomRead + " " +usefulTime+"\n";
 //        save_text(toAdd,roomNum, client.getUserId());
-        textService.join(sendRoom.getTextList().get(sendRoom.getTextList().size()-1));
+//        Text one = textService.findOne(textId);
+//        if(one == null)
+//        {
+//            System.out.println("shouldn't be here "+textId);
+//            roomService.update(roomNum,text);
+//            textService.join(sendRoom.getTextList().get(sendRoom.getTextList().size()-1));
+//        }
+        textService.checkAndSave(textId,text);
 
         if(client.getUserId().equals(sender)) return;
         if(client.getCurRoom() == null) return;
@@ -92,10 +99,7 @@ public class BroadCastService
         if(!roomOwner)
         {
 //            add_roomList(room.getRoomNum(),client.getUserId());
-            synchronized (logr)
-            {
-                roomService.join(room,client.getUserId());
-            }
+            roomService.join(room,client.getUserId());
         }
         client.getRoomList().add(room);
         byte[] inviteeReceive = new byte[16];
