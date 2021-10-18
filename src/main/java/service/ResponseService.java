@@ -152,6 +152,12 @@ public class ResponseService
         {
             logr.info("[requestId: " + reqId + " " + op + " success]");
             UI.fileNum = data.getInt();
+            byte[] roomNameReceive = new byte[16];
+            data.get(roomNameReceive, 0, 16);
+            String fileName = new String(removeZero(roomNameReceive), StandardCharsets.UTF_8);
+            int fileSize = data.getInt();
+            System.out.println(fileSize);
+
         }
         else logr.severe("requestId: " + reqId + " : " + op + " failed");
 

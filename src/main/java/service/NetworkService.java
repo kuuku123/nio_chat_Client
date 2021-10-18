@@ -90,7 +90,7 @@ public class NetworkService
 
     void receive(Client client)
     {
-        ByteBuffer readBuffer = ByteBuffer.allocate(10000);
+        ByteBuffer readBuffer = ByteBuffer.allocate(100000);
         client.getSocketChannel().read(readBuffer, readBuffer, new CompletionHandler<Integer, ByteBuffer>()
         {
             @Override
@@ -106,7 +106,7 @@ public class NetworkService
                         if (reqId == -1) processBroadcast(attachment);
                         else processResponse(reqId, attachment);
 
-                        ByteBuffer readBuffer = ByteBuffer.allocate(10000);
+                        ByteBuffer readBuffer = ByteBuffer.allocate(100000);
                         if(client.getSocketChannel().isOpen())  client.getSocketChannel().read(readBuffer, readBuffer, this);
                     } catch (Exception e)
                     {
@@ -130,7 +130,7 @@ public class NetworkService
 
     public void send(int reqId, int reqNum, String userId, int roomNum, ByteBuffer inputData , Client client)
     {
-        ByteBuffer writeBuffer = ByteBuffer.allocate(10000);
+        ByteBuffer writeBuffer = ByteBuffer.allocate(100000);
         writeBuffer.putInt(reqId);
         writeBuffer.position(4);
         writeBuffer.putInt(reqNum);
@@ -146,6 +146,10 @@ public class NetworkService
             @Override
             public void completed(Integer result, Object attachment)
             {
+//                synchronized (inputData)
+//                {
+//                    inputData.notify();
+//                }
                 OperationEnum op = OperationEnum.fromInteger(reqNum);
                 logr.info("[보내기 완료 requestId: " + reqId + " " + op.toString() + " request]");
             }
@@ -153,6 +157,10 @@ public class NetworkService
             @Override
             public void failed(Throwable exc, Object attachment)
             {
+                synchronized (inputData)
+                {
+                    inputData.notify();
+                }
                 logr.severe("[서버 통신 안됨 , send fail]");
                 stopClient(client);
             }

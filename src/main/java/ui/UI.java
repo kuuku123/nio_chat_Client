@@ -130,7 +130,8 @@ public class UI
                         int totalSize = bytes.length;
                         int blockCount = totalSize / cutSize;
                         int blockLeftover = totalSize % cutSize;
-
+                        int startPos = 0;
+                        int tempPos = 0;
                         for(int a = 0; a<=blockCount; a++)
                         {
                             byte[] small;
@@ -144,6 +145,7 @@ public class UI
                                     small[c] = bytes[b];
                                     c++;
                                 }
+                                tempPos+= blockLeftover;
                             }
                             else
                             {
@@ -153,23 +155,25 @@ public class UI
                                     small[c] = bytes[b];
                                     c++;
                                 }
+                                tempPos += cutSize;
                             }
                             ByteBuffer fileBuf = ByteBuffer.allocate(1000);
                             fileBuf.putInt(fileNum);
-                            fileBuf.putInt(cutSize);
+                            fileBuf.putInt(startPos);
                             fileBuf.put(small);
                             fileBuf.flip();
-                            synchronized (for_uploadfile)
+                            synchronized (fileBuf)
                             {
                                 try
                                 {
                                     ns.send(i,3,client.getUserId(), client.getCurRoom().getRoomNum(), fileBuf,client);
-                                    for_uploadfile.wait(500);
+                                    fileBuf.wait(100);
                                 } catch (InterruptedException e)
                                 {
                                     e.printStackTrace();
                                 }
                             }
+                            startPos = tempPos;
                         }
                     } catch (IOException e)
                     {
