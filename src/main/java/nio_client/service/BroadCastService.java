@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.Vector;
 import java.util.logging.Logger;
 
-import static nio_client.util.ElseProcess.*;
 import static nio_client.util.ElseProcess.removeZero;
 
 @Service
@@ -24,19 +23,19 @@ public class BroadCastService
     private final Client client;
     private final RoomService roomService;
     private final TextService textService;
+    public static int checkTextSave = 0;
 
     public void broadcastText(ByteBuffer leftover)
     {
         int roomNum = leftover.getInt();
-        Room sendRoom = null;
-        for (Room room : client.getRoomList())
-        {
-            if (room.getRoomNum() == roomNum)
-            {
-                sendRoom = room;
-                break;
-            }
-        }
+//        for (Room room : client.getRoomList())
+//        {
+//            if (room.getRoomNum() == roomNum)
+//            {
+//                sendRoom = room;
+//                break;
+//            }
+//        }
         leftover.position(12);
         byte[] senderReceive = new byte[16];
         leftover.get(senderReceive, 0, 16);
@@ -56,10 +55,8 @@ public class BroadCastService
         int limit = leftover.limit();
         leftover.get(chat, 0, limit - position);
         String chatting = new String(removeZero(chat), StandardCharsets.UTF_8);
-        Text text = new Text(textId, sender, chatting, notRoomRead, usefulTime, sendRoom);
-        sendRoom.getTextList().add(text);
 
-        String toAdd = textId + " " + sender + " " + textSize + " " + chatting + " " + notRoomRead + " " +usefulTime+"\n";
+
 //        save_text(toAdd,roomNum, client.getUserId());
 //        Text one = textService.findOne(textId);
 //        if(one == null)
@@ -68,9 +65,13 @@ public class BroadCastService
 //            roomService.update(roomNum,text);
 //            textService.join(sendRoom.getTextList().get(sendRoom.getTextList().size()-1));
 //        }
-        textService.checkAndSave(textId,text);
 
-        if(client.getUserId().equals(sender)) return;
+
+        if(client.getUserId().equals(sender))
+        {
+            roomService.saveText(roomNum,textId,sender,chatting,notRoomRead,usefulTime);
+            return;
+        }
         if(client.getCurRoom() == null) return;
         if(client.getCurRoom().getRoomNum() != roomNum) return;
         System.out.println(sender + " : " + chatting + " " + notRoomRead + " " + usefulTime + " "+ client.getCurRoom().getRoomNum()+"번 방");
@@ -99,7 +100,7 @@ public class BroadCastService
         if(!roomOwner)
         {
 //            add_roomList(room.getRoomNum(),client.getUserId());
-            roomService.join(room,client.getUserId());
+            roomService.joinUser(room,client.getUserId());
         }
         client.getRoomList().add(room);
         byte[] inviteeReceive = new byte[16];

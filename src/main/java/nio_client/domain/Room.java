@@ -20,7 +20,7 @@ public class Room
 
     private Integer roomNum;
 
-    @OneToMany(mappedBy = "room")
+    @OneToMany(mappedBy = "room",cascade = CascadeType.ALL)
     private List<Text> textList = new Vector<>();
 
     public Room(int roomNum)

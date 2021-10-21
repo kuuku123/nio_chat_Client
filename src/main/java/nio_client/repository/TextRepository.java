@@ -2,9 +2,11 @@ package nio_client.repository;
 
 import lombok.RequiredArgsConstructor;
 import nio_client.domain.Text;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.stereotype.Repository;
 
 import javax.persistence.EntityManager;
+import javax.persistence.LockModeType;
 import javax.persistence.NoResultException;
 import java.util.List;
 

@@ -22,7 +22,7 @@ public class RoomService
     private final RoomRepository roomRepository;
     private final UserRepository userRepository;
 
-    public void join(Room room, String userId)
+    public void joinUser(Room room, String userId)
     {
         List<User> byUserName = userRepository.findByUserName(userId);
         User user = byUserName.get(0);
@@ -44,9 +44,20 @@ public class RoomService
         }
     }
 
-    public void update(int roomNum, Text text)
+    public Room findOne(int roomNum)
     {
         Room byRoomNum = roomRepository.findByRoomNum(roomNum);
+        byRoomNum.getTextList();
+        return byRoomNum;
+    }
+
+    public void saveText(int roomNum,int textId, String sender, String chatting, int notRoomRead, String usefulTime)
+    {
+        Room byRoomNum = roomRepository.findByRoomNum(roomNum);
+        Text text = new Text(textId, sender, chatting, notRoomRead, usefulTime, byRoomNum);
         byRoomNum.getTextList().add(text);
     }
+
+
+
 }
