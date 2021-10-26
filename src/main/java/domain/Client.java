@@ -1,11 +1,14 @@
 package domain;
 
+import service.NetworkService;
+import util.SendPackage;
+
 import java.io.IOException;
-import java.nio.channels.AsynchronousChannelGroup;
-import java.nio.channels.AsynchronousSocketChannel;
+import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.SocketChannel;
 import java.util.List;
 import java.util.Vector;
-import java.util.concurrent.Executors;
 
 public class Client
 {
@@ -14,18 +17,18 @@ public class Client
     boolean loggedIn = false;
     boolean connection_start_fail = false;
     Room curRoom = null;
-    private AsynchronousSocketChannel socketChannel;
-    private AsynchronousChannelGroup channelGroup;
+    private SocketChannel socketChannel;
     boolean closeGroup = false;
 
     public Client()
     {
         try
         {
-            channelGroup = AsynchronousChannelGroup.withFixedThreadPool(
-                    Runtime.getRuntime().availableProcessors(),
-                    Executors.defaultThreadFactory());
-            socketChannel = AsynchronousSocketChannel.open(channelGroup);
+            socketChannel = SocketChannel.open();
+            socketChannel.configureBlocking(false);
+            SelectionKey selectionKey = socketChannel.register(NetworkService.selector, SelectionKey.OP_CONNECT);
+            SendPackage sendPackage = new SendPackage(this, 0, 0, 0, 0, ByteBuffer.allocate(0));
+            selectionKey.attach(sendPackage);
         } catch (IOException e)
         {
             e.printStackTrace();
@@ -52,7 +55,7 @@ public class Client
         return closeGroup;
     }
 
-    public void setSocketChannel(AsynchronousSocketChannel socketChannel)
+    public void setSocketChannel(SocketChannel socketChannel)
     {
         this.socketChannel = socketChannel;
     }
@@ -67,15 +70,11 @@ public class Client
         this.roomList = roomList;
     }
 
-    public AsynchronousSocketChannel getSocketChannel()
+    public SocketChannel getSocketChannel()
     {
         return socketChannel;
     }
 
-    public AsynchronousChannelGroup getChannelGroup()
-    {
-        return channelGroup;
-    }
 
     public boolean isLoggedIn()
     {

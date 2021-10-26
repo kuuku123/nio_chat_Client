@@ -5,15 +5,17 @@ import ui.UI;
 import util.BroadcastEnum;
 import util.MyLog;
 import util.OperationEnum;
+import util.SendPackage;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.channels.CompletionHandler;
-import java.nio.channels.NotYetConnectedException;
+import java.nio.channels.*;
 import java.nio.charset.StandardCharsets;
+import java.util.Iterator;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
@@ -23,6 +25,7 @@ import static util.ElseProcess.*;
 public class NetworkService
 {
     private final static Logger logr = MyLog.getLogr();
+    public static Selector selector;
     private final ResponseService responseService;
     private final BroadCastService broadCastService;
 
@@ -34,50 +37,65 @@ public class NetworkService
 
     public void startConnection(Client client)
     {
+        SocketChannel socketChannel = client.getSocketChannel();
         try
         {
-
-            client.getSocketChannel().connect(new InetSocketAddress("localhost", 5001), null, new CompletionHandler<Void, Object>()
-            {
-                @Override
-                public void completed(Void result, Object attachment)
-                {
-                    try
-                    {
-                        logr.info("[연결완료: " + client.getSocketChannel().getRemoteAddress() + "]");
-                        for (int i = 0; i < (int) Math.pow(256, 3); i++)
-                        {
-                            reqIdList.add(-1);
-                        }
-                        synchronized (for_startConnection)
-                        {
-                            for_startConnection.notify();
-                        }
-                    } catch (IOException e)
-                    {
-                    }
-                    receive(client);
-                }
-
-                @Override
-                public void failed(Throwable exc, Object attachment)
-                {
-                    logr.severe("[서버 통신 안됨 connect fail]");
-                    client.setConnection_start_fail(true);
-                    if (client.getSocketChannel().isOpen()) stopClient(client);
-                    synchronized (for_startConnection)
-                    {
-                        for_startConnection.notify();
-                    }
-                }
-            });
-        } catch (NotYetConnectedException e)
-        {
-        } catch (Exception e)
+            socketChannel.connect(new InetSocketAddress("localhost",5001));
+            selector.wakeup();
+        } catch (IOException e)
         {
             e.printStackTrace();
         }
 
+
+
+        Thread thread = new Thread(() ->
+        {
+            while(true)
+            {
+                try
+                {
+                    int keyCount = selector.select();
+                    if(keyCount == 0) continue;
+                    Set<SelectionKey> selectedKeys = selector.selectedKeys();
+                    Iterator<SelectionKey> iterator = selectedKeys.iterator();
+                    while(iterator.hasNext())
+                    {
+                        SelectionKey selectionKey = iterator.next();
+                        if(selectionKey.isConnectable())
+                        {
+                            connect(selectionKey);
+                        }
+                        else if (selectionKey.isReadable())
+                        {
+                            receive(selectionKey);
+                        }
+                        else if(selectionKey.isWritable())
+                        {
+                            send(selectionKey);
+                        }
+                        iterator.remove();
+                    }
+                }
+                catch (Exception e)
+                {
+                    e.printStackTrace();
+                    if(client.getSocketChannel().isOpen())
+                    {
+                        try
+                        {
+                            client.getSocketChannel().close();
+                        } catch (IOException ex)
+                        {
+                            ex.printStackTrace();
+                        }
+                    }
+
+                    break;
+                }
+            }
+        });
+        thread.start();
     }
 
     void stopClient(Client client)
@@ -85,51 +103,74 @@ public class NetworkService
         logr.info("[서버 연결 끊김]");
         client.setLoggedIn(false);
         clearReqIdList();
-        if (client.isCloseGroup() && client.getChannelGroup() != null && !client.getChannelGroup().isShutdown()) client.getChannelGroup().shutdown();
-    }
-
-    void receive(Client client)
-    {
-        ByteBuffer readBuffer = ByteBuffer.allocate(100000);
-        client.getSocketChannel().read(readBuffer, readBuffer, new CompletionHandler<Integer, ByteBuffer>()
+        try
         {
-            @Override
-            public void completed(Integer result, ByteBuffer attachment)
-            {
-                if(result != -1)
-                {
-                    try
-                    {
-                        attachment.flip();
-                        int reqId = attachment.getInt();
-                        attachment.position(4);
-                        if (reqId == -1) processBroadcast(attachment);
-                        else processResponse(reqId, attachment);
-
-                        ByteBuffer readBuffer = ByteBuffer.allocate(100000);
-                        if(client.getSocketChannel().isOpen())  client.getSocketChannel().read(readBuffer, readBuffer, this);
-                    } catch (Exception e)
-                    {
-                        e.printStackTrace();
-                    }
-                }
-                else if(result == -1)
-                {
-                    logr.info("[ server has closed your socket channel ]");
-                }
-            }
-
-            @Override
-            public void failed(Throwable exc, ByteBuffer attachment)
-            {
-                logr.severe("[서버 통신 안됨, receive fail]");
-                stopClient(client);
-            }
-        });
+            client.getSocketChannel().close();
+        } catch (IOException e)
+        {
+            e.printStackTrace();
+        }
     }
 
-    public void send(int reqId, int reqNum, String userId, int roomNum, ByteBuffer inputData , Client client)
+    void connect(SelectionKey selectionKey)
     {
+        SendPackage sendPackage = (SendPackage) selectionKey.attachment();
+        Client client = sendPackage.getClient();
+        try
+        {
+            client.getSocketChannel().finishConnect();
+            for (int i = 0; i < (int) Math.pow(256, 3); i++)
+            {
+                reqIdList.add(-1);
+            }
+            synchronized (for_startConnection)
+            {
+                for_startConnection.notify();
+            }
+        } catch (IOException e)
+        {
+            e.printStackTrace();
+        }
+        selectionKey.interestOps(SelectionKey.OP_READ);
+        selector.wakeup();
+    }
+
+    void receive(SelectionKey selectionKey)
+    {
+        SendPackage sendPackage = (SendPackage) selectionKey.attachment();
+        Client client = sendPackage.getClient();
+        try
+        {
+            ByteBuffer readBuffer = ByteBuffer.allocate(100000);
+
+            int byteCount = client.getSocketChannel().read(readBuffer);
+            readBuffer.flip();
+            int reqId = readBuffer.getInt();
+            readBuffer.position(4);
+            if (reqId == -1) processBroadcast(readBuffer);
+            else processResponse(reqId, readBuffer);
+        }
+        catch(Exception e)
+        {
+            e.printStackTrace();
+            stopClient(client);
+        }
+    }
+
+    public void send(SelectionKey selectionKey)
+    {
+        SendPackage sendPackage = (SendPackage) selectionKey.attachment();
+        Client client = sendPackage.getClient();
+        int reqId = sendPackage.getReqId();
+        int reqNum = sendPackage.getOperation();
+        String userId = sendPackage.getClient().getUserId();
+        int roomNum = -1;
+        if(sendPackage.getClient().getCurRoom() != null)
+        {
+            roomNum = sendPackage.getClient().getCurRoom().getRoomNum();
+        }
+        ByteBuffer inputData = sendPackage.getLeftover();
+
         ByteBuffer writeBuffer = ByteBuffer.allocate(100000);
         writeBuffer.putInt(reqId);
         writeBuffer.position(4);
@@ -141,30 +182,22 @@ public class NetworkService
         writeBuffer.position(28);
         writeBuffer.put(inputData);
         writeBuffer.flip();
-        client.getSocketChannel().write(writeBuffer, null, new CompletionHandler<Integer, Object>()
+        try
         {
-            @Override
-            public void completed(Integer result, Object attachment)
+            client.getSocketChannel().write(writeBuffer);
+            selectionKey.interestOps(SelectionKey.OP_READ);
+            OperationEnum op = OperationEnum.fromInteger(reqNum);
+            logr.info("[보내기 완료 requestId: " + reqId + " " + op.toString() + " request]");
+        } catch (IOException e)
+        {
+            e.printStackTrace();
+            synchronized (inputData)
             {
-//                synchronized (inputData)
-//                {
-//                    inputData.notify();
-//                }
-                OperationEnum op = OperationEnum.fromInteger(reqNum);
-                logr.info("[보내기 완료 requestId: " + reqId + " " + op.toString() + " request]");
+                inputData.notify();
             }
-
-            @Override
-            public void failed(Throwable exc, Object attachment)
-            {
-                synchronized (inputData)
-                {
-                    inputData.notify();
-                }
-                logr.severe("[서버 통신 안됨 , send fail]");
-                stopClient(client);
-            }
-        });
+            logr.severe("[서버 통신 안됨 , send fail]");
+            stopClient(client);
+        }
     }
 
 

@@ -6,6 +6,7 @@ import service.BroadCastService;
 import service.NetworkService;
 import service.ResponseService;
 import util.MyLog;
+import util.SendPackage;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -13,11 +14,14 @@ import java.io.InputStreamReader;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousChannelGroup;
 import java.nio.channels.AsynchronousSocketChannel;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.logging.Logger;
 
+import static service.NetworkService.selector;
 import static util.ElseProcess.availableReqId;
 import static util.ElseProcess.read_text_restore;
 
@@ -30,8 +34,7 @@ public class UI
     private final static Logger logr = MyLog.getLogr();
     private Client client;
     private final NetworkService ns;
-    private AsynchronousSocketChannel socketChannel;
-    private AsynchronousChannelGroup channelGroup;
+    private SocketChannel socketChannel;
     public static int fileNum = -1;
     public static String fileName = "";
     int cutSize = 500;
@@ -41,7 +44,6 @@ public class UI
         this.client = client;
         this.ns = networkService;
         this.socketChannel = client.getSocketChannel();
-        this.channelGroup = client.getChannelGroup();
     }
 
     public void processInput(String command)
@@ -64,7 +66,12 @@ public class UI
                 {
                     try
                     {
-                        client.setSocketChannel(AsynchronousSocketChannel.open(client.getChannelGroup()));
+                        socketChannel = SocketChannel.open();
+                        socketChannel.configureBlocking(false);
+                        SelectionKey selectionKey = socketChannel.register(NetworkService.selector, SelectionKey.OP_CONNECT);
+                        SendPackage sendPackage = new SendPackage(client, 0, 0, 0, 0, ByteBuffer.allocate(0));
+                        selectionKey.attach(sendPackage);
+                        client.setSocketChannel(socketChannel);
                     } catch (IOException e)
                     {
                         e.printStackTrace();
@@ -88,7 +95,7 @@ public class UI
                     client.setConnection_start_fail(false);
                     try
                     {
-                        client.setSocketChannel(AsynchronousSocketChannel.open(client.getChannelGroup()));
+                        client.setSocketChannel(SocketChannel.open());
                     } catch (IOException e)
                     {
                         e.printStackTrace();
@@ -100,7 +107,11 @@ public class UI
                 client.setUserId(name);
                 read_text_restore(client);
                 int reqId = availableReqId(0);
-                ns.send(reqId, 0, name, -1, ByteBuffer.allocate(0),client);
+                SelectionKey selectionKey = client.getSocketChannel().keyFor(selector);
+                SendPackage sendPackage = new SendPackage(client, reqId, 0, 0, 0, ByteBuffer.allocate(0));
+                selectionKey.attach(sendPackage);
+                selectionKey.interestOps(SelectionKey.OP_WRITE);
+                ns.send(selectionKey);
             }
             else if (client.isLoggedIn() == false)
             {
@@ -112,7 +123,11 @@ public class UI
                 if (client.isLoggedIn() == true)
                 {
                     int reqId = availableReqId(1);
-                    ns.send(reqId, 1, client.getUserId(), -1, ByteBuffer.allocate(0),client);
+                    SelectionKey selectionKey = client.getSocketChannel().keyFor(selector);
+                    SendPackage sendPackage = new SendPackage(client, reqId, 1, 0, 0, ByteBuffer.allocate(0));
+                    selectionKey.attach(sendPackage);
+                    selectionKey.interestOps(SelectionKey.OP_WRITE);
+                    ns.send(selectionKey);
                 }
             }
             else if (command.startsWith("uploadfile", 1))
@@ -166,7 +181,12 @@ public class UI
                             {
                                 try
                                 {
-                                    ns.send(i,3,client.getUserId(), client.getCurRoom().getRoomNum(), fileBuf,client);
+                                    SelectionKey selectionKey = client.getSocketChannel().keyFor(selector);
+                                    SendPackage sendPackage = new SendPackage(client, i, 3, 0, 0, fileBuf);
+                                    selectionKey.attach(sendPackage);
+                                    selectionKey.interestOps(SelectionKey.OP_WRITE);
+                                    ns.send(selectionKey);
+
                                     fileBuf.wait(100);
                                 } catch (InterruptedException e)
                                 {
@@ -193,7 +213,12 @@ public class UI
                 else if(client.isLoggedIn() == true && client.getCurRoom() != null)
                 {
                     int i = availableReqId(4);
-                    ns.send(i,4,client.getUserId(), client.getCurRoom().getRoomNum(), ByteBuffer.allocate(0),client);
+                    SelectionKey selectionKey = client.getSocketChannel().keyFor(selector);
+                    SendPackage sendPackage = new SendPackage(client, i, 4, 0, 0, ByteBuffer.allocate(0));
+                    selectionKey.attach(sendPackage);
+                    selectionKey.interestOps(SelectionKey.OP_WRITE);
+                    ns.send(selectionKey);
+
                 }
                 return;
             }
@@ -213,7 +238,12 @@ public class UI
                     buffer.putInt(cutSize);
                     buffer.putInt(100);
                     buffer.flip();
-                    ns.send(i,5,client.getUserId(), client.getCurRoom().getRoomNum(), buffer,client);
+                    SelectionKey selectionKey = client.getSocketChannel().keyFor(selector);
+                    SendPackage sendPackage = new SendPackage(client, i, 5, 0, 0, buffer);
+                    selectionKey.attach(sendPackage);
+                    selectionKey.interestOps(SelectionKey.OP_WRITE);
+                    ns.send(selectionKey);
+
                 }
 
                 return;
@@ -232,7 +262,11 @@ public class UI
                     int fileNum = Integer.parseInt(command.substring(12));
                     buffer.putInt(fileNum);
                     buffer.flip();
-                    ns.send(i,6,client.getUserId(), client.getCurRoom().getRoomNum(), buffer, client);
+                    SelectionKey selectionKey = client.getSocketChannel().keyFor(selector);
+                    SendPackage sendPackage = new SendPackage(client, i, 6, 0, 0, buffer);
+                    selectionKey.attach(sendPackage);
+                    selectionKey.interestOps(SelectionKey.OP_WRITE);
+                    ns.send(selectionKey);
                 }
 
                 return;
@@ -249,7 +283,12 @@ public class UI
                     roomNameBuf.put(roomName.getBytes(StandardCharsets.UTF_8));
                     roomNameBuf.position(16);
                     roomNameBuf.flip();
-                    ns.send(reqId, 7, client.getUserId(), -1, roomNameBuf, client);
+
+                    SelectionKey selectionKey = client.getSocketChannel().keyFor(selector);
+                    SendPackage sendPackage = new SendPackage(client, reqId, 7, 0, 0, roomNameBuf);
+                    selectionKey.attach(sendPackage);
+                    selectionKey.interestOps(SelectionKey.OP_WRITE);
+                    ns.send(selectionKey);
                 }
 
             }
@@ -263,7 +302,12 @@ public class UI
                 else if(client.isLoggedIn() == true && client.getCurRoom() != null)
                 {
                     int i = availableReqId(8);
-                    ns.send(i,8,client.getUserId(), client.getCurRoom().getRoomNum(), ByteBuffer.allocate(0),client);
+                    SelectionKey selectionKey = client.getSocketChannel().keyFor(selector);
+                    SendPackage sendPackage = new SendPackage(client, i, 8, 0, 0, ByteBuffer.allocate(0));
+                    selectionKey.attach(sendPackage);
+                    selectionKey.interestOps(SelectionKey.OP_WRITE);
+                    ns.send(selectionKey);
+
                     return;
                 }
             } else if (command.startsWith("inviteuser", 1))
@@ -296,7 +340,12 @@ public class UI
                     inviteBuffer.position(i * 16 + 4);
                     int a = availableReqId(9);
                     inviteBuffer.flip();
-                    ns.send(a, 9, client.getUserId(), roomNum, inviteBuffer,client);
+
+                    SelectionKey selectionKey = client.getSocketChannel().keyFor(selector);
+                    SendPackage sendPackage = new SendPackage(client, a, 9, 0, 0, inviteBuffer);
+                    selectionKey.attach(sendPackage);
+                    selectionKey.interestOps(SelectionKey.OP_WRITE);
+                    ns.send(selectionKey);
                 }
             }
             else if (command.startsWith("showuser", 1))
@@ -309,7 +358,12 @@ public class UI
                 else if(client.isLoggedIn() == true && client.getCurRoom() != null)
                 {
                     int i = availableReqId(10);
-                    ns.send(i,10,client.getUserId(), client.getCurRoom().getRoomNum(), ByteBuffer.allocate(0),client);
+
+                    SelectionKey selectionKey = client.getSocketChannel().keyFor(selector);
+                    SendPackage sendPackage = new SendPackage(client, i, 10, 0, 0, ByteBuffer.allocate(0));
+                    selectionKey.attach(sendPackage);
+                    selectionKey.interestOps(SelectionKey.OP_WRITE);
+                    ns.send(selectionKey);
                 }
                 return;
 
@@ -318,7 +372,11 @@ public class UI
                 if (client.isLoggedIn() == true)
                 {
                     int i = availableReqId(11);
-                    ns.send(i, 11, client.getUserId(), -1, ByteBuffer.allocate(0),client);
+                    SelectionKey selectionKey = client.getSocketChannel().keyFor(selector);
+                    SendPackage sendPackage = new SendPackage(client, i, 11, 0, 0, ByteBuffer.allocate(0));
+                    selectionKey.attach(sendPackage);
+                    selectionKey.interestOps(SelectionKey.OP_WRITE);
+                    ns.send(selectionKey);
                 }
             } else if (command.startsWith("enterroom", 1))
             {
@@ -334,7 +392,12 @@ public class UI
                             break;
                         }
                     }
-                    ns.send(i, 12, client.getUserId(), roomNum, ByteBuffer.allocate(0),client);
+
+                    SelectionKey selectionKey = client.getSocketChannel().keyFor(selector);
+                    SendPackage sendPackage = new SendPackage(client, i, 12, 0, 0, ByteBuffer.allocate(0));
+                    selectionKey.attach(sendPackage);
+                    selectionKey.interestOps(SelectionKey.OP_WRITE);
+                    ns.send(selectionKey);
                 }
 
             } else if (command.startsWith("enrollfile", 1))
@@ -357,7 +420,13 @@ public class UI
                         byte[] bytes = Files.readAllBytes(Paths.get("./"+fileName));
                         fileNameBuf.putInt(bytes.length);
                         fileNameBuf.flip();
-                        ns.send(i,13,client.getUserId(), client.getCurRoom().getRoomNum(), fileNameBuf,client);
+
+                        SelectionKey selectionKey = client.getSocketChannel().keyFor(selector);
+                        SendPackage sendPackage = new SendPackage(client, i, 13, 0, 0, fileNameBuf);
+                        selectionKey.attach(sendPackage);
+                        selectionKey.interestOps(SelectionKey.OP_WRITE);
+                        ns.send(selectionKey);
+
                     } catch (IOException e)
                     {
                         e.printStackTrace();
@@ -374,7 +443,11 @@ public class UI
                 else if(client.isLoggedIn() == true && client.getCurRoom() != null)
                 {
                     int i = availableReqId(15);
-                    ns.send(i,15,client.getUserId(), client.getCurRoom().getRoomNum(), ByteBuffer.allocate(0), client);
+                    SelectionKey selectionKey = client.getSocketChannel().keyFor(selector);
+                    SendPackage sendPackage = new SendPackage(client, i, 15, 0, 0, ByteBuffer.allocate(0));
+                    selectionKey.attach(sendPackage);
+                    selectionKey.interestOps(SelectionKey.OP_WRITE);
+                    ns.send(selectionKey);
                     return;
                 }
             }
@@ -399,7 +472,12 @@ public class UI
                 ByteBuffer textBuffer = ByteBuffer.allocate(1000);
                 textBuffer.put(command.getBytes(StandardCharsets.UTF_8));
                 textBuffer.flip();
-                ns.send(i, 2, client.getUserId(), client.getCurRoom().getRoomNum(), textBuffer,client);
+
+                SelectionKey selectionKey = client.getSocketChannel().keyFor(selector);
+                SendPackage sendPackage = new SendPackage(client, i, 2, 0, 0, textBuffer);
+                selectionKey.attach(sendPackage);
+                selectionKey.interestOps(SelectionKey.OP_WRITE);
+                ns.send(selectionKey);
             }
         }
     }

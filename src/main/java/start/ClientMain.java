@@ -9,11 +9,19 @@ import ui.UI;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.channels.Selector;
 
 public class ClientMain
 {
     public static void main(String[] args)
     {
+        try
+        {
+            NetworkService.selector = Selector.open();
+        } catch (IOException e)
+        {
+            e.printStackTrace();
+        }
         Client client = new Client();
         ResponseService responseService = new ResponseService(client);
         BroadCastService broadCastService = new BroadCastService(client);
