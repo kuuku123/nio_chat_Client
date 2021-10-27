@@ -144,11 +144,16 @@ public class NetworkService
             ByteBuffer readBuffer = ByteBuffer.allocate(100000);
 
             int byteCount = client.getSocketChannel().read(readBuffer);
+            if(byteCount == -1)
+            {
+                return;
+            }
             readBuffer.flip();
             int reqId = readBuffer.getInt();
             readBuffer.position(4);
             if (reqId == -1) processBroadcast(readBuffer);
             else processResponse(reqId, readBuffer);
+            readBuffer.clear();
         }
         catch(Exception e)
         {
