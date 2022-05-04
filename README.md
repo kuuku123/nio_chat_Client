@@ -1,4 +1,7 @@
-# nio_chat_Client
+# nio_chat_Client <br>
+
+executable_Client_server.zip 안에 bin 에 들어가 스크립트를 실행시키면 사용가능
+
 Chat Protocol <br>
 https://gitlab.com/jk6841/nio-chat-protocol/-/tree/jk
 <br>
