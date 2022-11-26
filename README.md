@@ -5,6 +5,19 @@ executable_Client_server.zip 안에 bin 에 들어가 스크립트를 실행시�
 Chat Protocol <br>
 https://gitlab.com/jk6841/nio-chat-protocol/-/tree/jk
 <br>
+각 요청 형식마다 몇바이트씩 어떤 정보를 넣을것인지를 정함
+
+#### Request
+|Request ID|Request Type|User ID|Current Room Number|Data|
+|:-----:|:-----:|:----:|:----:|:----:|
+
+#### Response
+|Request ID|Request Type|Result|Data|
+|:-----:|:-----:|:----:|:----:|
+
+#### Broadcast Response
+|Request ID|Request Type|User ID|Current Room Number|Time|Data|
+|:-----:|:-----:|:----:|:----:|:----:|:----:|
 
 ### (1) Request 
 기능|Request Number|명령어|
