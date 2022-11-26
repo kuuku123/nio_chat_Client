@@ -1,0 +1,16 @@
+version: '3'
+services:
+  client:
+    container_name: nio-client
+    image: kuuku123/nio-client:1.0
+    stdin_open: true
+    tty: true
+    environment:
+      - server_host=server
+
+  server:
+    container_name: nio-server
+    image: kuuku123/nio-server:1.0
+    ports:
+      - "5001:5001"
+    

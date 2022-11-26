@@ -36,8 +36,12 @@ public class NetworkService
     {
         try
         {
-
-            client.getSocketChannel().connect(new InetSocketAddress("localhost", 5001), null, new CompletionHandler<Void, Object>()
+            String server_host = System.getenv("server_host");
+            if (server_host == null) {
+                server_host = "localhost";
+            }
+            System.out.println(server_host);
+            client.getSocketChannel().connect(new InetSocketAddress(server_host, 5001), null, new CompletionHandler<Void, Object>()
             {
                 @Override
                 public void completed(Void result, Object attachment)
