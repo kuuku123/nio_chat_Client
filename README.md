@@ -87,6 +87,7 @@ request를 보낸 Client 객체가 현재 지니고 있는 roomList를 참고하
 파일 등록<br>
 파일의 이름(확장자까지) , 총 파일 크기를 request에 담아 서버에게 전달<br>
 서버는 해당 정보를 기반으로 File객체를 생성하고 해당Client가 속한 Room 객체 필드에 fileList에 추가<br>
+경로는 ./temp_db/{roomNum}/{fileNum}/{fileName} 으로 만들어서 중복으로 보내도 구분할수 있도록함 <br>
 아직 해당 경로에는 실제 파일이 존재하지 않고 업로드 request시 실제 데이터가 오면 채워 넣음<br>
 이런 등록 과정이 있는 이유는 보내려 하는 파일이 커서 chunk로 짤려 오게 되는 경우<br>
 해당 파일 chunk가 어느 파일의 일부 인지를 서버가 파일 번호를 보고 구별하기 위함<br>

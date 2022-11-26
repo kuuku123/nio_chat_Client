@@ -162,12 +162,12 @@ public class UI
                             fileBuf.putInt(startPos);
                             fileBuf.put(small);
                             fileBuf.flip();
-                            synchronized (fileBuf)
+                            synchronized (for_uploadfile)
                             {
                                 try
                                 {
                                     ns.send(i,3,client.getUserId(), client.getCurRoom().getRoomNum(), fileBuf,client);
-                                    fileBuf.wait(100);
+                                    for_uploadfile.wait();
                                 } catch (InterruptedException e)
                                 {
                                     e.printStackTrace();

@@ -166,12 +166,15 @@ public class ResponseService
 
     public void fileUploadProcess(OperationEnum op, int reqId, int serverResult, ByteBuffer data)
     {
-        if(serverResult == 0)
-        {
-            logr.info("[requestId: " + reqId + " " + op + " success]");
+        synchronized (UI.for_uploadfile) {
+            if(serverResult == 0)
+            {
+                logr.info("[requestId: " + reqId + " " + op + " success]");
+            }
+            else logr.severe("requestId: " + reqId + " : " + op + " failed");
+            reqIdList.set(reqId,-1);
+            UI.for_uploadfile.notify();
         }
-        else logr.severe("requestId: " + reqId + " : " + op + " failed");
-        reqIdList.set(reqId,-1);
     }
 
     public void roomUserListProcess(OperationEnum op, int reqId, int serverResult, ByteBuffer data)
