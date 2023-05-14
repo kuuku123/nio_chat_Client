@@ -2,8 +2,7 @@
 
 docker-compose up 을 한후에 다른 terminal 에서 docker attach nio-client 후 명령어 입력하면 사용가능
 
-Chat Protocol <br>
-https://gitlab.com/jk6841/nio-chat-protocol/-/tree/jk
+## Chat Protocol <br>
 <br>
 각 요청 형식마다 몇바이트씩 어떤 정보를 넣을것인지를 정함
 
